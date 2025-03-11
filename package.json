@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "pre": "cross-env-shell yenv print env.yaml $APP_ENV dotenv -f -s > .env",
+    "dev": "cross-env APP_ENV=development npm run pre && vite",
+    "build": "cross-env APP_ENV=production npm run pre && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "lint:fix": "eslint . --fix",
@@ -16,13 +17,16 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",
     "@tailwindcss/vite": "^4.0.12",
+    "axios": "^1.8.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cross-env": "^7.0.3",
     "lucide-react": "^0.479.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "yenv": "^3.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
@@ -34,9 +38,12 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.21.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-check-file": "^2.8.0",
     "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
