@@ -1,0 +1,52 @@
+import { signOut } from "firebase/auth"
+import { BookUser, LogOut, MessageSquareText, SquareCheckBig } from "lucide-react"
+import { memo } from "react"
+import { toast } from "react-toastify"
+
+import { auth } from "~/lib/firebase"
+import { useUserStore } from "~/stores/use-user.store"
+import { getErrorMessage } from "~/utils/get-error-messages.util"
+
+const MainTab = memo(() => {
+  const currentUser = useUserStore((state) => state.currentUser)
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      toast.success("Logout Successfully!!!")
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    }
+  }
+
+  return (
+    <div className='min-w-[68px] border bg-blue-800 h-[100vh] flex flex-col justify-between'>
+      <div className=''>
+        <figure className='flex justify-center items-center mt-4'>
+          <img className='rounded-full w-[50px] h-[50px]' src={currentUser?.avatar} alt='avatar' />
+        </figure>
+
+        <div className='flex flex-col justify-center items-center space-y-4 pt-4'>
+          <button className='cursor-pointer p-2 border rounded-lg bg-accent'>
+            <MessageSquareText className='size-6 text-black ' />
+          </button>
+
+          <button className='cursor-pointer p-2  rounded-lg '>
+            <BookUser className='size-6 text-white ' />
+          </button>
+
+          <button className='cursor-pointer p-2  rounded-lg '>
+            <SquareCheckBig className='size-6 text-white ' />
+          </button>
+        </div>
+      </div>
+
+      <div className='flex justify-center items-center pb-4'>
+        <button onClick={handleLogout} className='cursor-pointer p-2 border rounded-lg bg-accent'>
+          <LogOut className='size-6 text-black ' />
+        </button>
+      </div>
+    </div>
+  )
+})
+export { MainTab }
