@@ -23,7 +23,11 @@ const MainTab = memo(() => {
     <div className='min-w-[68px] border bg-blue-800 h-[100vh] flex flex-col justify-between'>
       <div className=''>
         <figure className='flex justify-center items-center mt-4'>
-          <img className='rounded-full w-[50px] h-[50px]' src={currentUser?.avatar} alt='avatar' />
+          <img
+            className='rounded-full w-[50px] h-[50px]'
+            src={currentUser?.avatar || "/images/person.png"}
+            alt='avatar'
+          />
         </figure>
 
         <div className='flex flex-col justify-center items-center space-y-4 pt-4'>

@@ -29,9 +29,10 @@ interface UserChatsData {
 interface ChatStore {
   chatId: string | null
   user: User | null
+  group: UserChatItem | null // Thêm thông tin nhóm
   isCurrentUserBlocked: boolean
   isReceiverBlocked: boolean
-  changeChat: (chatId: string, user: User) => void
+  changeChat: (chatId: string, user: User | null, group?: UserChatItem | null) => void // Cập nhật chữ ký hàm
   changeBlock: () => void
   resetChat: () => void
 }

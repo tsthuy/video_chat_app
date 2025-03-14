@@ -7,6 +7,7 @@ import { toast } from "react-toastify"
 
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Textarea } from "~/components/ui/textarea"
+import { useMembersChatGroup } from "~/hooks/use-user-chats.hook"
 import { db } from "~/lib/firebase"
 import { useChatStore } from "~/stores/use-chat.store"
 import { useUserStore } from "~/stores/use-user.store"
@@ -25,7 +26,8 @@ const Chat = memo(() => {
   const [recordTime, setRecordTime] = useState(0)
 
   const { currentUser } = useUserStore()
-  const { chatId, user, isCurrentUserBlocked, isReceiverBlocked } = useChatStore()
+  const { chatId, user, group, isCurrentUserBlocked, isReceiverBlocked } = useChatStore()
+  const { data: memberInfo = {}, isLoading: isLoadingMembers } = useMembersChatGroup(chatId)
 
   const endRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -103,7 +105,7 @@ const Chat = memo(() => {
   }
 
   const handleSend = useCallback(async () => {
-    if (!chatId || !currentUser || !user) return
+    if (!chatId || !currentUser || (!user && !group)) return
     if (!text && !img.file && !audioBlob) return
 
     setIsSending(true)
@@ -113,6 +115,7 @@ const Chat = memo(() => {
 
     setText("")
     handleRemoveFile()
+
     try {
       if (img.file) {
         const fileType = img.file.type.split("/")[0]
@@ -148,9 +151,9 @@ const Chat = memo(() => {
         messages: arrayUnion(message)
       })
 
-      const userIDs = [currentUser.id, user.id]
+      const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
       await Promise.all(
-        userIDs.map(async (id) => {
+        memberIds.map(async (id) => {
           const userChatsRef = doc(db, "userchats", id)
           const userChatsSnapshot = await getDoc(userChatsRef)
           if (userChatsSnapshot.exists()) {
@@ -170,16 +173,20 @@ const Chat = memo(() => {
     } finally {
       setIsSending(false)
     }
-  }, [chatId, currentUser, user, text, img, audioBlob])
+  }, [chatId, currentUser, user, group, text, img, audioBlob])
 
   return (
     <div className='flex flex-col h-full border-l border-gray-200 w-[600px] overflow-hidden'>
       <div className='flex items-center pt-4 justify-between pl-2 border-b pb-2'>
         <div className='flex items-center gap-2'>
           <figure className='flex items-center'>
-            <img className='rounded-full w-[50px] h-[50px]' src={user?.avatar} alt='avatar' />
+            <img
+              className='rounded-full w-[50px] h-[50px]'
+              src={group ? group.imgUrl || "/group-default.png" : user?.avatar}
+              alt='avatar'
+            />
           </figure>
-          <h3>{user?.username}</h3>
+          <h3>{group ? group.groupName : user?.username}</h3>
         </div>
         <div className='flex'>
           <button className='cursor-pointer p-2 rounded-lg'>
@@ -192,7 +199,7 @@ const Chat = memo(() => {
       </div>
 
       <div className='flex-1 overflow-y-auto p-4 max-w-[600px]'>
-        {renderMessages(chat, currentUser)}
+        {isLoadingMembers ? <p>Đang tải thông tin thành viên...</p> : renderMessages(chat, currentUser, memberInfo)}
         {(img.url || audioBlob) && (
           <div className='flex justify-end mb-4'>
             <div className='max-w-xs p-3 rounded-lg bg-blue-500 text-white relative'>
@@ -212,8 +219,8 @@ const Chat = memo(() => {
               {audioBlob && !img.url && (
                 <audio src={URL.createObjectURL(audioBlob)} controls className='min-w-[80px]' />
               )}
-              <button onClick={handleRemoveFile} className='absolute -top-2 -left-2 p-2'>
-                <X className='text-red-600' />
+              <button onClick={handleRemoveFile} className='absolute -top-2 -left-2 p-2 bg-red-500 text-white rounded'>
+                <X />
               </button>
             </div>
           </div>
@@ -228,7 +235,7 @@ const Chat = memo(() => {
           handleSend()
         }}
       >
-        <div className='flex gap-2 relative flex-shrink-0'>
+        <div className='flex gap-2 relative items-center flex-shrink-0'>
           <label htmlFor='file' className='cursor-pointer'>
             <Paperclip className='size-6 text-black' />
           </label>
@@ -240,7 +247,7 @@ const Chat = memo(() => {
             accept='image/*,video/*,application/pdf,application/msword,application/vnd.ms-excel'
           />
 
-          <div className='relative'>
+          <div className='relative flex items-center'>
             <Popover>
               <PopoverTrigger asChild>
                 <button type='button' className='p-1'>
@@ -292,7 +299,7 @@ const Chat = memo(() => {
           </div>
         </div>
 
-        <div className='flex-1 min-w-0'>
+        <div className='flex-1 items-center min-w-0'>
           <Textarea
             rows={1}
             placeholder={isCurrentUserBlocked || isReceiverBlocked ? "You cannot send a message" : "Type a message..."}
