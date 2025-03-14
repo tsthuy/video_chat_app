@@ -8,6 +8,7 @@ import { auth } from "~/lib/firebase"
 import { HomePage } from "~/pages/home"
 import { LoginPages } from "~/pages/login"
 import { SignUpPage } from "~/pages/signup"
+import { AspectRatioDemo } from "~/pages/test"
 import { useUserStore } from "~/stores/use-user.store"
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path='/test' element={<AspectRatioDemo />} />
         </Routes>
       </BrowserRouter>
       <ToastContainer position='top-center' />

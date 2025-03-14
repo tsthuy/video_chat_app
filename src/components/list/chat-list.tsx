@@ -1,5 +1,5 @@
 import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore"
-import { Search } from "lucide-react"
+import { Users } from "lucide-react"
 import { memo, useEffect, useState } from "react"
 import { toast } from "react-toastify"
 
@@ -25,7 +25,7 @@ const ChatList = memo(() => {
     const unSub = onSnapshot(doc(db, "userchats", currentUser!.id), async (res) => {
       const items = res?.data()?.chats
 
-      const promises = items.map(async (item: ChatItem) => {
+      const promises = items.map(async (item: UserChatItem) => {
         const userDocRef = doc(db, "users", item.receiverId)
         const userDocSnap = await getDoc(userDocRef)
 
@@ -79,7 +79,7 @@ const ChatList = memo(() => {
         <div className='flex w-full gap-2'>
           <Input onChange={(e) => setInput(e.target.value)} name='username' className='' placeholder='Search...' />
           <Button type='button' variant='outline'>
-            <Search />
+            <Users />
           </Button>
 
           <AddUser />

@@ -11,6 +11,6 @@ import App from "./App.tsx"
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <App />
-    <ReactQueryDevtools buttonPosition='bottom-left' initialIsOpen={false} />
+    <ReactQueryDevtools initialIsOpen={false} />
   </QueryClientProvider>
 )

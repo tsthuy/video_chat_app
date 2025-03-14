@@ -1,8 +1,13 @@
-interface ChatItem {
+interface UserChatItem {
   chatId: string
   lastMessage: string
   receiverId: string
   updatedAt: number
+  isSeen?: boolean
+  type?: "single" | "group"
+  groupName?: string
+  memberIds: string[]
+  imgUrl?: string
 }
 
 interface User {
@@ -13,9 +18,8 @@ interface User {
   blocked: string[]
 }
 
-interface ChatWithUser extends ChatItem {
+interface ChatWithUser extends UserChatItem {
   user: User
-  isSeen?: boolean
 }
 
 interface UserChatsData {

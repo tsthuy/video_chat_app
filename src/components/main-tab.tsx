@@ -1,5 +1,5 @@
 import { signOut } from "firebase/auth"
-import { BookUser, LogOut, MessageSquareText, SquareCheckBig } from "lucide-react"
+import { LogOut, MessageSquareText } from "lucide-react"
 import { memo } from "react"
 import { toast } from "react-toastify"
 
@@ -29,14 +29,6 @@ const MainTab = memo(() => {
         <div className='flex flex-col justify-center items-center space-y-4 pt-4'>
           <button className='cursor-pointer p-2 border rounded-lg bg-accent'>
             <MessageSquareText className='size-6 text-black ' />
-          </button>
-
-          <button className='cursor-pointer p-2  rounded-lg '>
-            <BookUser className='size-6 text-white ' />
-          </button>
-
-          <button className='cursor-pointer p-2  rounded-lg '>
-            <SquareCheckBig className='size-6 text-white ' />
           </button>
         </div>
       </div>

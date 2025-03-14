@@ -1,15 +1,19 @@
-interface Message {
-  chatId: string
-  senderId: string
-  text: string
-  createdAt: Timestamp
-  img?: string
-}
-
 interface ChatData {
+  id: string
+  createdAt: Timestamp
   messages: Message[]
 }
 
+interface Message {
+  chatId: string
+  senderId: string
+  text?: string
+  createdAt: Timestamp
+  img?: string
+  audio?: string
+  file?: string
+  type: "text" | "image" | "audio" | "video" | "file"
+}
 interface ImgState {
   file: File | null
   url: string
