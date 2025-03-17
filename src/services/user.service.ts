@@ -12,7 +12,7 @@ export const fetchUserChats = async (userId: string): Promise<ChatWithUser[]> =>
 
   const items = (docSnap.data() as UserChatsData).chats || []
 
-  const promises = items.map(async (item: ChatItem) => {
+  const promises = items.map(async (item: UserChatItem) => {
     const userDocRef = doc(db, "users", item.receiverId)
     const userDocSnap = await getDoc(userDocRef)
     const user = userDocSnap.data() as User

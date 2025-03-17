@@ -32,7 +32,7 @@ interface ChatStore {
   group: UserChatItem | null // Thêm thông tin nhóm
   isCurrentUserBlocked: boolean
   isReceiverBlocked: boolean
-  changeChat: (chatId: string, user: User | null, group?: UserChatItem | null) => void // Cập nhật chữ ký hàm
+  changeChat: (chatId: string, user: User | null, group?: UserChatItem | null) => void
   changeBlock: () => void
   resetChat: () => void
 }

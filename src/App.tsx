@@ -5,10 +5,11 @@ import { ToastContainer } from "react-toastify"
 
 import { ProtectedRoute } from "~/components/layouts/protected-route"
 import { auth } from "~/lib/firebase"
+import { CallPages } from "~/pages/call"
 import { HomePage } from "~/pages/home"
 import { LoginPages } from "~/pages/login"
 import { SignUpPage } from "~/pages/signup"
-import { AspectRatioDemo } from "~/pages/test"
+import TestCall from "~/pages/test"
 import { useUserStore } from "~/stores/use-user.store"
 
 export default function App() {
@@ -40,7 +41,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path='/test' element={<AspectRatioDemo />} />
+          <Route path='/call' element={<CallPages />} />
+          <Route path='/test' element={<TestCall />} />
         </Routes>
       </BrowserRouter>
       <ToastContainer position='top-center' />

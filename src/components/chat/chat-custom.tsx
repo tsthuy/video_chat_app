@@ -1,6 +1,16 @@
 "use client"
 import EmojiPicker from "emoji-picker-react"
-import { arrayUnion, doc, DocumentSnapshot, getDoc, onSnapshot, Timestamp, updateDoc } from "firebase/firestore"
+import {
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  DocumentSnapshot,
+  getDoc,
+  onSnapshot,
+  Timestamp,
+  updateDoc
+} from "firebase/firestore"
 import { Info, Mic, Paperclip, SmilePlus, Video, X } from "lucide-react"
 import { memo, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
@@ -32,6 +42,7 @@ const Chat = memo(() => {
   const endRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const micTriggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -59,19 +70,40 @@ const Chat = memo(() => {
     }
   }, [isRecording])
 
+  useEffect(() => {
+    if (!currentUser || !user || group) return
+
+    const callsRef = collection(db, "calls")
+    const unsubscribe = onSnapshot(callsRef, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const callData = change.doc.data()
+          if (callData.receiverId === currentUser.id && callData.status === "pending") {
+            toast.info(`${user.username} đang gọi video cho bạn!`, {
+              onClick: () => {
+                window.open(`/call?callId=${change.doc.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
+              },
+              autoClose: false
+            })
+          }
+        }
+      })
+    })
+
+    return () => unsubscribe()
+  }, [currentUser, user, group, chatId])
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaRecorderRef.current = new MediaRecorder(stream)
       const chunks: BlobPart[] = []
-
       mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data)
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/webm" })
         setAudioBlob(blob)
         stream.getTracks().forEach((track) => track.stop())
       }
-
       mediaRecorderRef.current.start()
       setIsRecording(true)
       setRecordTime(0)
@@ -84,6 +116,7 @@ const Chat = memo(() => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
+      micTriggerRef.current?.click()
     }
   }
 
@@ -105,16 +138,11 @@ const Chat = memo(() => {
   }
 
   const handleSend = useCallback(async () => {
-    if (!chatId || !currentUser || (!user && !group)) return
-    if (!text && !img.file && !audioBlob) return
-
+    if (!chatId || !currentUser || (!user && !group) || (!text && !img.file && !audioBlob)) return
     setIsSending(true)
     let imgUrl: string | null = null
     let audioUrl: string | null = null
     let fileUrl: string | null = null
-
-    setText("")
-    handleRemoveFile()
 
     try {
       if (img.file) {
@@ -147,10 +175,7 @@ const Chat = memo(() => {
         ...(fileUrl && { file: fileUrl })
       }
 
-      await updateDoc(doc(db, "chats", chatId), {
-        messages: arrayUnion(message)
-      })
-
+      await updateDoc(doc(db, "chats", chatId), { messages: arrayUnion(message) })
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
       await Promise.all(
         memberIds.map(async (id) => {
@@ -168,12 +193,43 @@ const Chat = memo(() => {
           }
         })
       )
+
+      setText("")
+      handleRemoveFile()
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
       setIsSending(false)
     }
   }, [chatId, currentUser, user, group, text, img, audioBlob])
+
+  const handleVideoCall = async () => {
+    if (!chatId || !currentUser || !user || group) {
+      toast.error("Chỉ hỗ trợ video call cho chat 1vs1!")
+      return
+    }
+
+    const callRef = await addDoc(collection(db, "calls"), {
+      callerId: currentUser.id,
+      receiverId: user.id,
+      status: "pending",
+      createdAt: Timestamp.now()
+    })
+
+    const callWindow = window.open(`/call?callId=${callRef.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
+
+    if (!callWindow) {
+      toast.error("Vui lòng cho phép popup để thực hiện cuộc gọi!")
+      return
+    }
+
+    const checkWindowClosed = setInterval(() => {
+      if (callWindow.closed) {
+        clearInterval(checkWindowClosed)
+        updateDoc(doc(db, "calls", callRef.id), { status: "ended" })
+      }
+    }, 500)
+  }
 
   return (
     <div className='flex flex-col h-full border-l border-gray-200 w-[600px] overflow-hidden'>
@@ -189,7 +245,12 @@ const Chat = memo(() => {
           <h3>{group ? group.groupName : user?.username}</h3>
         </div>
         <div className='flex'>
-          <button className='cursor-pointer p-2 rounded-lg'>
+          <button
+            onClick={handleVideoCall}
+            className='cursor-pointer p-2 rounded-lg disabled:opacity-50'
+            disabled={isCurrentUserBlocked || isReceiverBlocked || !!group}
+            title='Video Call'
+          >
             <Video className='size-6 text-black' />
           </button>
           <button className='cursor-pointer p-2 rounded-lg'>
@@ -246,11 +307,10 @@ const Chat = memo(() => {
             onChange={handleFile}
             accept='image/*,video/*,application/pdf,application/msword,application/vnd.ms-excel'
           />
-
           <div className='relative flex items-center'>
             <Popover>
               <PopoverTrigger asChild>
-                <button type='button' className='p-1'>
+                <button type='button' ref={micTriggerRef} className='p-1'>
                   <Mic className='size-6 text-black' />
                 </button>
               </PopoverTrigger>
@@ -298,7 +358,6 @@ const Chat = memo(() => {
             </Popover>
           </div>
         </div>
-
         <div className='flex-1 items-center min-w-0'>
           <Textarea
             rows={1}
@@ -310,7 +369,6 @@ const Chat = memo(() => {
             style={{ minWidth: "200px", maxWidth: "100%" }}
           />
         </div>
-
         <div className='flex gap-2 items-center flex-shrink-0'>
           <div className='relative'>
             <SmilePlus onClick={() => setOpen((prev) => !prev)} className='size-6 text-black cursor-pointer' />
