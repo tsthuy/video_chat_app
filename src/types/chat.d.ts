@@ -6,7 +6,7 @@ interface UserChatItem {
   isSeen?: boolean
   type?: "single" | "group"
   groupName?: string
-  memberIds: string[]
+  memberIds?: string[]
   imgUrl?: string
 }
 

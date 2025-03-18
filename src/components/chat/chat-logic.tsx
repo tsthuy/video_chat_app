@@ -1,4 +1,3 @@
-// ChatContainer.tsx
 import {
   addDoc,
   arrayUnion,
@@ -43,6 +42,9 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const micTriggerRef = useRef<HTMLButtonElement>(null)
+  const toastIdRef = useRef<string | number | null>(null)
+
+  const isDisabled = isSending || isRecording || isLoadingMembers
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -79,13 +81,23 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         if (change.type === "added") {
           const callData = change.doc.data()
           if (callData.receiverId === currentUser.id && callData.status === "pending") {
-            toast.info(`${user.username} is calling for you!`, {
+            toastIdRef.current = toast.info(`${user.username} is calling for you!`, {
               onClick: () => {
-                window.open(`/call?callId=${change.doc.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
+                window.open(
+                  `/call?callId=${change.doc.id}&chatId=${chatId}&callerId=${callData.callerId}&receiverId=${callData.receiverId}`,
+                  "VideoCall",
+                  "width=800,height=600"
+                )
               },
-              autoClose: 30000,
-              pauseOnHover: false
+              autoClose: false
             })
+          }
+        } else if (change.type === "modified") {
+          const callData = change.doc.data()
+
+          if (callData.status === "ended" && toastIdRef.current) {
+            toast.dismiss(toastIdRef.current)
+            toastIdRef.current = null
           }
         }
       })
@@ -188,7 +200,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
 
-      const userChatsDataPromises = memberIds.map(async (id: string): Promise<UserChatsResult | null> => {
+      const userChatsDataPromises = memberIds!.map(async (id: string): Promise<UserChatsResult | null> => {
         const userChatsRef = doc(db, "userchats", id)
         const userChatsSnapshot = await getDoc(userChatsRef)
         if (userChatsSnapshot.exists()) {
@@ -236,7 +248,11 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         createdAt: Timestamp.now()
       })
 
-      const callWindow = window.open(`/call?callId=${callRef.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
+      const callWindow = window.open(
+        `/call?callId=${callRef.id}&chatId=${chatId}&callerId=${currentUser.id}&receiverId=${user.id}`,
+        "VideoCall",
+        "width=800,height=600"
+      )
 
       if (!callWindow) {
         toast.error("Please allow popup to start the call")
@@ -255,6 +271,15 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       toast.error(getErrorMessage(err))
     }
   }, [chatId, currentUser, user, group, onVideoCall])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      if (!isDisabled) {
+        handleSend()
+      }
+    }
+  }
 
   return {
     chat,
@@ -282,7 +307,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     isCurrentUserBlocked,
     isReceiverBlocked,
     setText,
-    user
+    user,
+    handleKeyDown
   }
 }
 

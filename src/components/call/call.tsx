@@ -1,20 +1,10 @@
-"use client"
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  setDoc,
-  updateDoc
-} from "firebase/firestore"
+import { addDoc, collection, doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "react-toastify"
 
 import { db } from "~/lib/firebase"
 import { useUserStore } from "~/stores/use-user.store"
+import { getErrorMessage } from "~/utils/get-error-messages.util"
 
 const servers: RTCConfiguration = {
   iceServers: [
@@ -28,14 +18,17 @@ const Call = () => {
   const { currentUser } = useUserStore()
   const [callId] = useState<string | null>(new URLSearchParams(window.location.search).get("callId"))
   const [chatId] = useState<string | null>(new URLSearchParams(window.location.search).get("chatId"))
+  const [callerId] = useState<string | null>(new URLSearchParams(window.location.search).get("callerId"))
+  const [receiverId] = useState<string | null>(new URLSearchParams(window.location.search).get("receiverId"))
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
-  const [isCaller, setIsCaller] = useState<boolean>(false)
   const [callStatus, setCallStatus] = useState<string>("pending")
 
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
   const pc = useRef<RTCPeerConnection | null>(null)
+
+  const isCaller = currentUser?.id === callerId
 
   useEffect(() => {
     if (localStream && localVideoRef.current) {
@@ -50,36 +43,33 @@ const Call = () => {
   }, [remoteStream])
 
   useEffect(() => {
-    if (!callId || !chatId || !currentUser) {
-      console.error("Invalid call parameters or user not found")
+    if (!callId || !chatId || !callerId || !receiverId) {
       return
     }
 
-    const setupSources = async () => {
+    const setupCall = async () => {
       try {
         const callDocRef = doc(db, "calls", callId)
         const callSnap = await getDoc(callDocRef)
         const callData = callSnap.data()
         if (!callData) {
-          console.error("Call data not found")
+          toast.error("Call data not found")
+          window.close()
           return
         }
 
-        const isCallerLocal = callData.callerId === currentUser.id
-        setIsCaller(isCallerLocal)
         setCallStatus(callData.status || "pending")
 
         const offerCandidates = collection(callDocRef, "offerCandidates")
         const answerCandidates = collection(callDocRef, "answerCandidates")
 
-        const localStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        })
+        const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         setLocalStream(localStream)
+
         const remoteStream = new MediaStream()
 
         pc.current = new RTCPeerConnection(servers)
+
         localStream.getTracks().forEach((track) => {
           if (pc.current && pc.current.signalingState !== "closed") {
             pc.current.addTrack(track, localStream)
@@ -93,10 +83,7 @@ const Call = () => {
           setRemoteStream(remoteStream)
         }
 
-        if (localVideoRef.current) localVideoRef.current.srcObject = localStream
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream
-
-        if (isCallerLocal) {
+        if (isCaller) {
           pc.current.onicecandidate = (event) => {
             if (event.candidate) {
               addDoc(offerCandidates, event.candidate.toJSON())
@@ -106,11 +93,8 @@ const Call = () => {
           const offerDescription = await pc.current.createOffer()
           await pc.current.setLocalDescription(offerDescription)
 
-          const offer = {
-            sdp: offerDescription.sdp,
-            type: offerDescription.type
-          }
-          await setDoc(callDocRef, { offer, callerId: currentUser.id, status: "pending" }, { merge: true })
+          const offer = { sdp: offerDescription.sdp, type: offerDescription.type }
+          await setDoc(callDocRef, { offer, callerId, receiverId, status: "pending" }, { merge: true })
 
           onSnapshot(callDocRef, (snapshot) => {
             const data = snapshot.data()
@@ -119,6 +103,7 @@ const Call = () => {
               pc.current?.setRemoteDescription(answerDescription)
             }
             setCallStatus(data?.status || "pending")
+            if (data?.status === "ended") window.close()
           })
 
           onSnapshot(answerCandidates, (snapshot) => {
@@ -132,7 +117,6 @@ const Call = () => {
         } else {
           pc.current.onicecandidate = (event) => {
             if (event.candidate) {
-              console.log("Candidate from remote:", event.candidate)
               addDoc(answerCandidates, event.candidate.toJSON())
             }
           }
@@ -144,6 +128,7 @@ const Call = () => {
               pc.current?.setRemoteDescription(offerDescription)
             }
             setCallStatus(data?.status || "pending")
+            if (data?.status === "ended") window.close()
           })
 
           onSnapshot(offerCandidates, (snapshot) => {
@@ -162,18 +147,19 @@ const Call = () => {
           }
         }
       } catch (error) {
-        console.error("Error setting up sources:", error)
+        toast.error(getErrorMessage(error))
+        window.close()
       }
     }
 
-    setupSources()
+    setupCall()
 
     return () => {
       if (localStream) localStream.getTracks().forEach((track) => track.stop())
       if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop())
       if (pc.current) pc.current.close()
     }
-  }, [callId, chatId, currentUser])
+  }, [callId, chatId, currentUser, callerId, receiverId])
 
   const handleAcceptCall = async () => {
     if (!pc.current || !callId || isCaller || callStatus !== "pending") return
@@ -188,63 +174,54 @@ const Call = () => {
     const answerDescription = await pc.current.createAnswer()
     await pc.current.setLocalDescription(answerDescription)
 
-    const answer = {
-      type: answerDescription.type,
-      sdp: answerDescription.sdp
-    }
+    const answer = { type: answerDescription.type, sdp: answerDescription.sdp }
     await updateDoc(callDocRef, { answer, status: "accepted" })
   }
 
-  const handleRejectCall = async () => {
-    if (!callId) return
-    await updateDoc(doc(db, "calls", callId), { status: "ended" })
-    hangUp()
-  }
-
   const hangUp = async () => {
-    if (pc.current) pc.current.close()
-
     if (callId) {
-      const roomRef = doc(db, "calls", callId)
-      const answerCandidates = collection(roomRef, "answerCandidates")
-      const offerCandidates = collection(roomRef, "offerCandidates")
-
-      const answerSnapshot = await getDocs(query(answerCandidates))
-      const offerSnapshot = await getDocs(query(offerCandidates))
-
-      answerSnapshot.forEach((doc) => deleteDoc(doc.ref))
-      offerSnapshot.forEach((doc) => deleteDoc(doc.ref))
-      await deleteDoc(roomRef)
+      await updateDoc(doc(db, "calls", callId), { status: "ended" })
+      window.close()
     }
-
+    if (pc.current) pc.current.close()
     if (localStream) localStream.getTracks().forEach((track) => track.stop())
     if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop())
-    window.location.reload()
   }
 
-  if (!callId || !chatId) return <p>Invalid call</p>
+  if (!callId || !chatId || !callerId || !receiverId) return <p>Invalid call</p>
 
   return (
     <div className='flex flex-col h-screen p-4'>
       <h2 className='text-xl mb-4'>Video Call</h2>
+      {callStatus === "pending" && <p className='text-center'>Connecting...</p>}
+
       <div className='flex flex-1 gap-4'>
         <video ref={localVideoRef} autoPlay playsInline muted className='w-1/2 rounded-lg border' />
         <video ref={remoteVideoRef} autoPlay playsInline className='w-1/2 rounded-lg border' />
       </div>
       <div className='mt-4 flex justify-center gap-4'>
-        {callStatus === "pending" && !isCaller && (
-          <>
-            <button onClick={handleAcceptCall} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
-              Chấp nhận
+        {isCaller ? (
+          <div>
+            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+              Hang Up
             </button>
-            <button onClick={handleRejectCall} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
-              Từ chối
+          </div>
+        ) : callStatus === "pending" && currentUser?.id === receiverId ? (
+          <div className='flex gap-2'>
+            <button onClick={handleAcceptCall} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
+              Accept
+            </button>
+            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+              Reject
+            </button>
+          </div>
+        ) : callStatus === "accepted" ? (
+          <>
+            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+              Hang Up
             </button>
           </>
-        )}
-        <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
-          Hủy cuộc gọi
-        </button>
+        ) : null}
       </div>
     </div>
   )

@@ -4,7 +4,8 @@ import { formatTime } from "~/utils/format-time.util"
 export const renderMessages = (
   chat: ChatData | undefined,
   currentUser: User | null,
-  memberInfo: Record<string, User>
+  memberInfo: Record<string, User>,
+  user?: User | null
 ) => {
   if (!chat?.messages) return null
 
@@ -17,9 +18,13 @@ export const renderMessages = (
     return (
       <div key={message.createdAt.toString()} className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2`}>
         <div className='flex gap-2'>
-          {(!sender || !isFirstInGroup) && <div className='w-8 h-8 flex-shrink-0' />}
+          {(!sender || !isFirstInGroup) && !user && <div className='w-8 h-8 flex-shrink-0' />}
           {sender && isFirstInGroup && (
-            <img src={sender.avatar} alt={sender.username} className='w-8 h-8 rounded-full' />
+            <img
+              src={sender.avatar || user?.avatar}
+              alt={sender.username || user?.username}
+              className='w-8 h-8 rounded-full'
+            />
           )}
           <div
             className={`max-w-xs p-3 rounded-lg ${isSender ? "bg-[#dbebff] text-black" : "bg-gray-200 text-gray-800"}`}

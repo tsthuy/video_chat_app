@@ -33,7 +33,8 @@ const ChatUI = ({
   setOpen,
   isCurrentUserBlocked,
   isReceiverBlocked,
-  user
+  user,
+  handleKeyDown
 }: ReturnType<typeof ChatContainer>) => {
   const isDisabled = isSending || isRecording || isLoadingMembers
 
@@ -48,7 +49,8 @@ const ChatUI = ({
               alt='avatar'
             />
           </figure>
-          <h3>{group?.groupName || memberInfo.user?.username}</h3>
+
+          <h3>{group ? group.groupName : user?.username}</h3>
         </div>
         <div className='flex'>
           <button
@@ -66,7 +68,11 @@ const ChatUI = ({
       </div>
 
       <div className='flex-1 overflow-y-auto p-4 max-w-[600px]'>
-        {isLoadingMembers ? <p className='text-center'>Loading...</p> : renderMessages(chat, currentUser, memberInfo)}
+        {isLoadingMembers ? (
+          <p className='text-center'>Loading...</p>
+        ) : (
+          renderMessages(chat, currentUser, memberInfo, user)
+        )}
         {(img.url || audioBlob) && (
           <div className='flex justify-end mb-4'>
             <div className='max-w-xs p-3 rounded-lg bg-blue-500 text-white relative'>
@@ -170,12 +176,14 @@ const ChatUI = ({
             rows={1}
             placeholder={isCurrentUserBlocked || isReceiverBlocked ? "You cannot send a message" : "Type a message..."}
             value={text}
+            onKeyDown={handleKeyDown}
             onChange={(e) => setText(e.target.value)}
             disabled={isCurrentUserBlocked || isReceiverBlocked}
             className='w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 resize-vertical min-h-[40px] max-h-[120px]'
             style={{ minWidth: "200px", maxWidth: "100%" }}
           />
         </div>
+
         <div className='flex gap-2 items-center flex-shrink-0'>
           <div className='relative'>
             <SmilePlus onClick={() => setOpen((prev) => !prev)} className='size-6 text-black cursor-pointer' />

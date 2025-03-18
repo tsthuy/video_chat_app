@@ -89,7 +89,7 @@ const ChatList = memo(() => {
 
   const handleCreateGroup = async () => {
     if (!groupName || selectedMembers.length === 0) {
-      toast.error("Nhập tên nhóm và chọn ít nhất 1 thành viên!")
+      toast.error("Please enter name and select member for your group!")
       return
     }
 
@@ -148,6 +148,7 @@ const ChatList = memo(() => {
       <div className='pt-2 px-2'>
         <div className='flex w-full gap-2'>
           <Input onChange={(e) => setInput(e.target.value)} name='username' placeholder='Search...' />
+
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
             <DialogTrigger asChild>
               <Button type='button' variant='outline'>
@@ -196,6 +197,7 @@ const ChatList = memo(() => {
               </div>
             </DialogContent>
           </Dialog>
+
           <AddUser />
         </div>
       </div>
