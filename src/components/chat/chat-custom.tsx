@@ -8,8 +8,11 @@ import {
   DocumentSnapshot,
   getDoc,
   onSnapshot,
+  query,
   Timestamp,
-  updateDoc
+  updateDoc,
+  where,
+  writeBatch
 } from "firebase/firestore"
 import { Info, Mic, Paperclip, SmilePlus, Video, X } from "lucide-react"
 import { memo, useCallback, useEffect, useRef, useState } from "react"
@@ -21,6 +24,7 @@ import { useMembersChatGroup } from "~/hooks/use-user-chats.hook"
 import { db } from "~/lib/firebase"
 import { useChatStore } from "~/stores/use-chat.store"
 import { useUserStore } from "~/stores/use-user.store"
+import { UserChatsResult } from "~/types/chat-custom"
 import { getErrorMessage } from "~/utils/get-error-messages.util"
 import { renderMessages } from "~/utils/render-messages.util"
 import upload from "~/utils/upload.util"
@@ -73,8 +77,8 @@ const Chat = memo(() => {
   useEffect(() => {
     if (!currentUser || !user || group) return
 
-    const callsRef = collection(db, "calls")
-    const unsubscribe = onSnapshot(callsRef, (snapshot) => {
+    const q = query(collection(db, "calls"), where("receiverId", "==", currentUser.id))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const callData = change.doc.data()
@@ -83,7 +87,7 @@ const Chat = memo(() => {
               onClick: () => {
                 window.open(`/call?callId=${change.doc.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
               },
-              autoClose: false
+              autoClose: 30000
             })
           }
         }
@@ -175,24 +179,37 @@ const Chat = memo(() => {
         ...(fileUrl && { file: fileUrl })
       }
 
-      await updateDoc(doc(db, "chats", chatId), { messages: arrayUnion(message) })
+      const batch = writeBatch(db)
+
+      const chatRef = doc(db, "chats", chatId)
+      batch.update(chatRef, { messages: arrayUnion(message) })
+
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
-      await Promise.all(
-        memberIds.map(async (id) => {
-          const userChatsRef = doc(db, "userchats", id)
-          const userChatsSnapshot = await getDoc(userChatsRef)
-          if (userChatsSnapshot.exists()) {
-            const userChatsData = userChatsSnapshot.data() as { chats: UserChatItem[] }
-            const chatIndex = userChatsData.chats.findIndex((c) => c.chatId === chatId)
-            if (chatIndex !== -1) {
-              userChatsData.chats[chatIndex].lastMessage = text || "Đã gửi một file"
-              userChatsData.chats[chatIndex].isSeen = id === currentUser.id
-              userChatsData.chats[chatIndex].updatedAt = Date.now()
-              await updateDoc(userChatsRef, { chats: userChatsData.chats })
-            }
-          }
-        })
+
+      const userChatsDataPromises = memberIds.map(async (id: string): Promise<UserChatsResult | null> => {
+        const userChatsRef = doc(db, "userchats", id)
+        const userChatsSnapshot = await getDoc(userChatsRef)
+        if (userChatsSnapshot.exists()) {
+          return { id, ref: userChatsRef, data: userChatsSnapshot.data() as { chats: UserChatItem[] } }
+        }
+        return null
+      })
+
+      const userChatsResults = (await Promise.all(userChatsDataPromises)).filter(
+        (result): result is UserChatsResult => result !== null
       )
+
+      userChatsResults.forEach(({ id, ref, data }) => {
+        const chatIndex = data.chats.findIndex((c) => c.chatId === chatId)
+        if (chatIndex !== -1) {
+          data.chats[chatIndex].lastMessage = text || "Đã gửi một file"
+          data.chats[chatIndex].isSeen = id === currentUser.id
+          data.chats[chatIndex].updatedAt = Date.now()
+          batch.update(ref, { chats: data.chats })
+        }
+      })
+
+      await batch.commit()
 
       setText("")
       handleRemoveFile()
