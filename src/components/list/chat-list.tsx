@@ -209,12 +209,13 @@ const ChatList = memo(() => {
               onClick={() => handleSelect(chat)}
               className={cn(
                 "flex gap-2 items-center py-2 px-2 cursor-pointer",
-                chatId === chat.chatId ? "bg-accent" : "bg-transparent",
+                chatId !== chat.chatId && "hover:bg-accent",
+                chatId === chat.chatId ? "bg-[#dbebff]" : "bg-transparent",
                 !chat.isSeen && chat.lastMessage !== "" && chat.chatId !== chatId && "bg-[#5183fe]"
               )}
               key={chat.chatId}
             >
-              <figure className='flex items-center'>
+              <figure className='flex items-center border-2 rounded-full'>
                 <img
                   className='rounded-full w-[50px] h-[50px]'
                   src={chat.type === "group" ? chat.imgUrl || "/group-default.png" : chat.user?.avatar}

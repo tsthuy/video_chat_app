@@ -8,10 +8,10 @@ import { getErrorMessage } from "~/utils/get-error-messages.util"
 
 const servers: RTCConfiguration = {
   iceServers: [
-    { urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
-    { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+    { urls: "stun:freestun.net:3478" },
+    { urls: "turn:freestun.net:3478", username: "free", credential: "free" }
   ],
-  iceCandidatePoolSize: 10
+  iceCandidatePoolSize: 5
 }
 
 const Call = () => {
@@ -31,14 +31,12 @@ const Call = () => {
   const isCaller = currentUser?.id === callerId
 
   useEffect(() => {
-    console.log("local")
     if (localStream && localVideoRef.current) {
       localVideoRef.current.srcObject = localStream
     }
   }, [localStream])
 
   useEffect(() => {
-    console.log("remote")
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream
     }
