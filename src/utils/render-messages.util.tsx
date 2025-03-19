@@ -27,15 +27,22 @@ export const renderMessages = (
             />
           )}
           <div
-            className={`max-w-xs p-3 rounded-lg ${isSender ? "bg-[#dbebff] text-black" : "bg-gray-200 text-gray-800"}`}
+            className={`max-w-[300px] p-3 rounded-lg ${isSender ? "bg-[#dbebff] text-black" : "bg-gray-200 text-gray-800"}`}
           >
             {sender && isFirstInGroup && <p className='text-xs font-bold'>{sender.username}</p>}
             {message.type === "text" && <p className='text-wrap break-words'>{message.text}</p>}
             {message.type === "image" && <img src={message.img} alt='image' className='w-full rounded-lg mb-2' />}
             {message.type === "video" && <video src={message.img} controls className='w-full rounded-lg mb-2' />}
-            {message.type === "audio" && <audio src={message.audio} controls className='min-w-[60px] mb-2' />}
+            {message.type === "audio" && (
+              <audio src={message.audio} controls className='min-w-[40px] max-w-[240px] mb-2' />
+            )}
             {message.type === "file" && (
-              <a href={message.file} target='_blank' rel='noopener noreferrer' className='underline mb-2 block'>
+              <a
+                href={message.file}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='underline mb-2 block text-wrap break-words hover:text-blue-500'
+              >
                 Tải file: {message.file?.split("/").pop()}
               </a>
             )}

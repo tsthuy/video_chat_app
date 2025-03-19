@@ -8,13 +8,13 @@ import { auth } from "~/lib/firebase"
 import { CallPages } from "~/pages/call"
 import { HomePage } from "~/pages/home"
 import { LoginPages } from "~/pages/login"
+import { SheetDemo } from "~/pages/shadcn"
 import { SignUpPage } from "~/pages/signup"
 import TestCall from "~/pages/test"
 import { useUserStore } from "~/stores/use-user.store"
 
 export default function App() {
   const fetchUserInfo = useUserStore((state) => state.fetchUserInfo)
-  const currentUser = useUserStore((state) => state.currentUser)
 
   useEffect(() => {
     const unSub = onAuthStateChanged(auth, (user) => {
@@ -26,7 +26,6 @@ export default function App() {
     }
   }, [fetchUserInfo])
 
-  console.log(currentUser)
   return (
     <>
       <BrowserRouter>
@@ -43,6 +42,7 @@ export default function App() {
           />
           <Route path='/call' element={<CallPages />} />
           <Route path='/test' element={<TestCall />} />
+          <Route path='/shadcn' element={<SheetDemo />} />
         </Routes>
       </BrowserRouter>
       <ToastContainer position='top-center' />

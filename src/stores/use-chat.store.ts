@@ -6,8 +6,15 @@ export const useChatStore = create<ChatStore>((set) => ({
   chatId: null,
   user: null,
   group: null,
+  isProfileOpen: true,
+  isUserChatOpen: true,
   isCurrentUserBlocked: false,
   isReceiverBlocked: false,
+
+  setIsProfileOpen: (isOpen) => set({ isProfileOpen: isOpen }),
+  toggleProfile: () => set((state) => ({ isProfileOpen: !state.isProfileOpen })),
+  setIsUserChatOpen: (isOpen) => set({ isUserChatOpen: isOpen }),
+  toggleUserChat: () => set((state) => ({ isUserChatOpen: !state.isUserChatOpen })),
 
   changeChat: (chatId: string, user: User | null, group: UserChatItem | null = null) => {
     const currentUser = useUserStore.getState().currentUser

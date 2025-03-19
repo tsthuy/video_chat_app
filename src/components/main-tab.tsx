@@ -20,7 +20,7 @@ const MainTab = memo(() => {
   }
 
   return (
-    <div className='min-w-[68px] border bg-blue-800 h-[100vh] flex flex-col justify-between'>
+    <div className='min-w-[68px] border bg-blue-800 h-svh flex flex-col justify-between '>
       <div className=''>
         <figure className='flex justify-center items-center mt-4'>
           <img

@@ -1,6 +1,5 @@
-"use client"
 import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, Timestamp, updateDoc } from "firebase/firestore"
-import { Paperclip, Users, X } from "lucide-react"
+import { Upload, Users, X } from "lucide-react"
 import { memo, useEffect, useState } from "react"
 import { toast } from "react-toastify"
 
@@ -155,20 +154,21 @@ const ChatList = memo(() => {
                 <Users />
               </Button>
             </DialogTrigger>
-            <DialogContent className='sm:max-w-[425px]'>
+            <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
               <DialogHeader>
-                <DialogTitle>Tạo nhóm chat</DialogTitle>
+                <DialogTitle>Create Group Chat</DialogTitle>
               </DialogHeader>
               <div className='grid gap-4 py-4'>
-                <Input placeholder='Tên nhóm' value={groupName} onChange={(e) => setGroupName(e.target.value)} />
-                <div className='flex items-center gap-2'>
-                  <label htmlFor='groupImg' className='cursor-pointer'>
-                    <Paperclip className='size-6' />
+                <Input placeholder='Group Name' value={groupName} onChange={(e) => setGroupName(e.target.value)} />
+                <div className='flex items-center gap-2 justify-center'>
+                  <label htmlFor='groupImg' className='cursor-pointer' title='Upload Your Group Image'>
+                    {!groupImg.url && <Upload className='size-6' />}
                   </label>
                   <input type='file' id='groupImg' className='hidden' accept='image/*' onChange={handleGroupImg} />
+
                   {groupImg.url && (
                     <div className='relative'>
-                      <img src={groupImg.url} alt='group preview' className='w-12 h-12 rounded-full' />
+                      <img src={groupImg.url} alt='group preview' className='w-14 h-14 rounded-full' />
                       <button
                         onClick={() => setGroupImg({ file: null, url: "" })}
                         className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1'

@@ -1,5 +1,5 @@
 import EmojiPicker from "emoji-picker-react"
-import { Info, Mic, Paperclip, SmilePlus, Video, X } from "lucide-react"
+import { ChevronsLeft, Columns2, Mic, Paperclip, SmilePlus, Video, X } from "lucide-react"
 import { memo } from "react"
 
 import ChatContainer from "~/components/chat/chat-logic"
@@ -34,14 +34,23 @@ const ChatUI = ({
   isCurrentUserBlocked,
   isReceiverBlocked,
   user,
-  handleKeyDown
+  handleKeyDown,
+  toggleProfile,
+  handleToggleUserChat
 }: ReturnType<typeof ChatContainer>) => {
   const isDisabled = isSending || isRecording || isLoadingMembers
 
   return (
-    <div className='flex flex-col h-full border-l border-gray-200 w-[600px] overflow-hidden'>
-      <div className='flex items-center pt-4 justify-between pl-2 border-b pb-2'>
+    <div className='flex flex-col h-full border-l flex-1 border-gray-200 overflow-hidden'>
+      <div className='flex items-center justify-between border-b min-h-[70px] px-2'>
         <div className='flex items-center gap-2'>
+          <button
+            onClick={handleToggleUserChat}
+            className='cursor-pointer p-2 rounded-lg block md:hidden'
+            title='Toggle User Chat'
+          >
+            <ChevronsLeft className='size-6 text-black' />
+          </button>
           <figure className='flex items-center'>
             <img
               className='rounded-full w-[50px] h-[50px]'
@@ -52,6 +61,7 @@ const ChatUI = ({
 
           <h3>{group ? group.groupName : user?.username}</h3>
         </div>
+
         <div className='flex'>
           <button
             onClick={handleVideoCall}
@@ -61,13 +71,13 @@ const ChatUI = ({
           >
             <Video className='size-6 text-black' />
           </button>
-          <button className='cursor-pointer p-2 rounded-lg'>
-            <Info className='size-6 text-black' />
+          <button onClick={toggleProfile} className='cursor-pointer p-2 rounded-lg'>
+            <Columns2 className='size-6 text-black' />
           </button>
         </div>
       </div>
 
-      <div className='flex-1 overflow-y-auto p-4 max-w-[600px]'>
+      <div className='flex-1 overflow-y-auto p-4'>
         {isLoadingMembers ? (
           <p className='text-center'>Loading...</p>
         ) : (
@@ -185,12 +195,15 @@ const ChatUI = ({
         </div>
 
         <div className='flex gap-2 items-center flex-shrink-0'>
-          <div className='relative'>
-            <SmilePlus onClick={() => setOpen((prev) => !prev)} className='size-6 text-black cursor-pointer' />
-            <div className='absolute bottom-12 right-0'>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <SmilePlus className='size-6 text-black cursor-pointer' />
+            </PopoverTrigger>
+            <PopoverContent className='p-0 mb-4 w-fit border-none shadow-lg border-red-600'>
               <EmojiPicker open={open} onEmojiClick={handleEmoji} />
-            </div>
-          </div>
+            </PopoverContent>
+          </Popover>
+
           <button
             type='submit'
             className='px-4 py-2 bg-blue-500 hover:opacity-80 cursor-pointer text-white rounded-lg disabled:bg-gray-400'

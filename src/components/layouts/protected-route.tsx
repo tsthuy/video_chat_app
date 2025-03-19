@@ -17,7 +17,12 @@ const ProtectedRoute = memo(({ children }: ProtectedRouteProps) => {
       navigate("/login", { replace: true })
     }
   }, [currentUser, isLoading, navigate])
-  if (isLoading) return <Loader8 />
+  if (isLoading)
+    return (
+      <div className='flex justify-center items-center h-svh'>
+        <Loader8 />
+      </div>
+    )
 
   if (!currentUser) {
     return null

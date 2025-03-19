@@ -31,19 +31,22 @@ const Call = () => {
   const isCaller = currentUser?.id === callerId
 
   useEffect(() => {
+    console.log("local")
     if (localStream && localVideoRef.current) {
       localVideoRef.current.srcObject = localStream
     }
   }, [localStream])
 
   useEffect(() => {
+    console.log("remote")
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream
     }
   }, [remoteStream])
 
   useEffect(() => {
-    if (!callId || !chatId || !callerId || !receiverId) {
+    if (!callId || !chatId || !currentUser || !callerId || !receiverId) {
+      console.error("Invalid call parameters", callId, chatId, currentUser, callerId, receiverId)
       return
     }
 
@@ -53,7 +56,7 @@ const Call = () => {
         const callSnap = await getDoc(callDocRef)
         const callData = callSnap.data()
         if (!callData) {
-          toast.error("Call data not found")
+          console.error("Call data not found")
           window.close()
           return
         }
@@ -65,11 +68,9 @@ const Call = () => {
 
         const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         setLocalStream(localStream)
-
         const remoteStream = new MediaStream()
 
         pc.current = new RTCPeerConnection(servers)
-
         localStream.getTracks().forEach((track) => {
           if (pc.current && pc.current.signalingState !== "closed") {
             pc.current.addTrack(track, localStream)

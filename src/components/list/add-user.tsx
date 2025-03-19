@@ -17,7 +17,6 @@ const AddUser = memo(() => {
   useEffect(() => {
     const fetchUsersAndChats = async () => {
       try {
-        // Lấy tất cả user từ collection "users"
         const usersRef = collection(db, "users")
         const usersSnapshot = await getDocs(usersRef)
         const usersList = usersSnapshot.docs
@@ -97,7 +96,7 @@ const AddUser = memo(() => {
           <UserPlus />
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
         <DialogHeader>
           <DialogTitle>Add user to Chat</DialogTitle>
         </DialogHeader>

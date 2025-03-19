@@ -35,7 +35,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const [recordTime, setRecordTime] = useState(0)
 
   const { currentUser } = useUserStore()
-  const { chatId, user, group, isCurrentUserBlocked, isReceiverBlocked } = useChatStore()
+  const { chatId, user, group, isCurrentUserBlocked, isReceiverBlocked, toggleProfile, toggleUserChat, resetChat } =
+    useChatStore()
   const { data: memberInfo = {}, isLoading: isLoadingMembers } = useMembersChatGroup(chatId)
 
   const endRef = useRef<HTMLDivElement>(null)
@@ -139,7 +140,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
   const handleEmoji = useCallback((e: { emoji: string }) => {
     setText((prev) => prev + e.emoji)
-    setOpen(false)
   }, [])
 
   const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +157,9 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const handleSend = useCallback(async () => {
     if (!chatId || !currentUser || (!user && !group) || (!text && !img.file && !audioBlob)) return
     setIsSending(true)
+
+    setText("")
+    handleRemoveFile()
 
     try {
       let imgUrl: string | null = null
@@ -225,8 +228,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
       await batch.commit()
       onSend(message)
-      setText("")
-      handleRemoveFile()
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -281,6 +282,11 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     }
   }
 
+  const handleToggleUserChat = () => {
+    toggleUserChat()
+    resetChat()
+  }
+
   return {
     chat,
     isSending,
@@ -308,7 +314,9 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     isReceiverBlocked,
     setText,
     user,
-    handleKeyDown
+    handleKeyDown,
+    toggleProfile,
+    handleToggleUserChat
   }
 }
 

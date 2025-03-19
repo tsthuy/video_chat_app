@@ -29,10 +29,16 @@ interface UserChatsData {
 interface ChatStore {
   chatId: string | null
   user: User | null
-  group: UserChatItem | null // Thêm thông tin nhóm
+  group: UserChatItem | null
+  isProfileOpen: boolean
+  isUserChatOpen: boolean
   isCurrentUserBlocked: boolean
   isReceiverBlocked: boolean
   changeChat: (chatId: string, user: User | null, group?: UserChatItem | null) => void
   changeBlock: () => void
   resetChat: () => void
+  setIsProfileOpen: (isOpen: boolean) => void
+  toggleProfile: () => void
+  setIsUserChatOpen: (isOpen: boolean) => void
+  toggleUserChat: () => void
 }
