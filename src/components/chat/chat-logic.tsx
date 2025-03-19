@@ -15,13 +15,13 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
-import { useMembersChatGroup } from "~/hooks/use-user-chats.hook"
+import { useMembersChatGroup } from "~/hooks"
 import { db } from "~/lib/firebase"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 import { UserChatsResult } from "~/types/chat-custom"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
-import upload from "~/utils/upload.util"
+import { getErrorMessage } from "~/utils"
+import { upload } from "~/utils"
 
 const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => void; onVideoCall: () => void }) => {
   const [chat, setChat] = useState<ChatData | undefined>(undefined)

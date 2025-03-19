@@ -1,5 +1,5 @@
 // eslint-disable-next-line check-file/filename-naming-convention
-import { formatTime } from "~/utils/format-time.util"
+import { formatTime } from "~/utils"
 
 export const renderMessages = (
   chat: ChatData | undefined,

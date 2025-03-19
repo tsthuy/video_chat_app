@@ -15,8 +15,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "~/components/ui/input"
 import { auth, db } from "~/lib/firebase"
 import { useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
-import upload from "~/utils/upload.util"
+import { getErrorMessage } from "~/utils"
+import { upload } from "~/utils"
 
 const formSchema = z.object({
   display_name: z.string().min(1),

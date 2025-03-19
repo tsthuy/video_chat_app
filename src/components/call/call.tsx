@@ -4,7 +4,7 @@ import { toast } from "react-toastify"
 
 import { db } from "~/lib/firebase"
 import { useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
+import { getErrorMessage } from "~/utils"
 
 const servers: RTCConfiguration = {
   iceServers: [
@@ -190,13 +190,19 @@ const Call = () => {
   if (!callId || !chatId || !callerId || !receiverId) return <p>Invalid call</p>
 
   return (
-    <div className='flex flex-col h-screen p-4'>
-      <h2 className='text-xl mb-4'>Video Call</h2>
+    <div className='flex flex-col h-svh p-4'>
+      <h2 className='text-xl mb-4 text-center'>Video Call</h2>
       {callStatus === "pending" && <p className='text-center'>Connecting...</p>}
 
-      <div className='flex flex-1 gap-4'>
-        <video ref={localVideoRef} autoPlay playsInline muted className='w-1/2 rounded-lg border' />
-        <video ref={remoteVideoRef} autoPlay playsInline className='w-1/2 rounded-lg border' />
+      <div className='flex flex-col-reverse sm:flex-row gap-4'>
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className='sm:w-1/2 h-[30%] sm:h-full w-full  rounded-lg border'
+        />
+        <video ref={remoteVideoRef} autoPlay playsInline className='sm:w-1/2 w-full rounded-lg border justify-end' />
       </div>
       <div className='mt-4 flex justify-center gap-4'>
         {isCaller ? (

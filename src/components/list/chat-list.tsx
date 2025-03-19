@@ -9,10 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "~/components/ui/input"
 import { db } from "~/lib/firebase"
 import { cn } from "~/lib/utils"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
-import upload from "~/utils/upload.util"
+import { getErrorMessage } from "~/utils"
+import { upload } from "~/utils"
 
 const ChatList = memo(() => {
   const currentUser = useUserStore((state) => state.currentUser)
@@ -33,6 +33,7 @@ const ChatList = memo(() => {
         if (item.type === "group") {
           return { ...item, user: null }
         }
+
         const userDocRef = doc(db, "users", item.receiverId)
         const userDocSnap = await getDoc(userDocRef)
         const user = userDocSnap.data()
@@ -126,7 +127,7 @@ const ChatList = memo(() => {
       setGroupImg({ file: null, url: "" })
       setSelectedMembers([])
       setOpenDialog(false)
-      toast.success("Tạo nhóm thành công!")
+      toast.success("Group created successfully!!!")
     } catch (error) {
       toast.error(getErrorMessage(error))
     }
@@ -156,19 +157,23 @@ const ChatList = memo(() => {
             </DialogTrigger>
             <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
               <DialogHeader>
-                <DialogTitle>Create Group Chat</DialogTitle>
+                <DialogTitle className='text-center'>Create Group Chat</DialogTitle>
               </DialogHeader>
               <div className='grid gap-4 py-4'>
                 <Input placeholder='Group Name' value={groupName} onChange={(e) => setGroupName(e.target.value)} />
                 <div className='flex items-center gap-2 justify-center'>
-                  <label htmlFor='groupImg' className='cursor-pointer' title='Upload Your Group Image'>
-                    {!groupImg.url && <Upload className='size-6' />}
+                  <label htmlFor='groupImg' className='cursor-pointer ' title='Upload Your Group Image'>
+                    {!groupImg.url && <Upload className='size-6 hover:text-blue-800' />}
                   </label>
                   <input type='file' id='groupImg' className='hidden' accept='image/*' onChange={handleGroupImg} />
 
                   {groupImg.url && (
                     <div className='relative'>
-                      <img src={groupImg.url} alt='group preview' className='w-14 h-14 rounded-full' />
+                      <img
+                        src={groupImg.url}
+                        alt='group preview '
+                        className='w-14 h-14 rounded-full border-black border'
+                      />
                       <button
                         onClick={() => setGroupImg({ file: null, url: "" })}
                         className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1'
@@ -193,7 +198,7 @@ const ChatList = memo(() => {
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleCreateGroup}>Tạo nhóm</Button>
+                <Button onClick={handleCreateGroup}>Create Group</Button>
               </div>
             </DialogContent>
           </Dialog>

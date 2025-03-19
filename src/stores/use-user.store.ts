@@ -3,7 +3,7 @@ import { toast } from "react-toastify"
 import { create } from "zustand"
 
 import { db } from "~/lib/firebase"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
+import { getErrorMessage } from "~/utils"
 
 export interface User {
   username: string

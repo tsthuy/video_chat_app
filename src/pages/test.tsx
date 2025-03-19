@@ -24,7 +24,7 @@ const servers: RTCConfiguration = {
 }
 
 // Component App
-function TestCall() {
+export function TestCall() {
   const [currentPage, setCurrentPage] = useState<"home" | "create" | "join">("home")
   const [joinCode, setJoinCode] = useState<string>("")
 
@@ -252,5 +252,3 @@ function Videos({ mode, callId, setPage }: VideosProps) {
     </div>
   )
 }
-
-export default TestCall

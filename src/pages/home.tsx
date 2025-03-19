@@ -5,8 +5,8 @@ import { ListUserChat } from "~/components/list/list-user-chat"
 import { MainTab } from "~/components/main-tab"
 import { Profile } from "~/components/profile/profile"
 import { ProfilePanel } from "~/components/profile/profile-panel"
-import { useMediaQuery } from "~/hooks/use-media-query.hook"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useMediaQuery } from "~/hooks"
+import { useChatStore } from "~/stores"
 
 const HomePage = memo(() => {
   const chatId = useChatStore((state) => state.chatId)

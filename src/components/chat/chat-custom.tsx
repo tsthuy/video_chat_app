@@ -20,14 +20,14 @@ import { toast } from "react-toastify"
 
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Textarea } from "~/components/ui/textarea"
-import { useMembersChatGroup } from "~/hooks/use-user-chats.hook"
+import { useMembersChatGroup } from "~/hooks"
 import { db } from "~/lib/firebase"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 import { UserChatsResult } from "~/types/chat-custom"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
+import { getErrorMessage } from "~/utils"
+import { upload } from "~/utils"
 import { renderMessages } from "~/utils/render-messages.util"
-import upload from "~/utils/upload.util"
 
 const Chat = memo(() => {
   const [chat, setChat] = useState<ChatData | undefined>(undefined)
@@ -83,7 +83,7 @@ const Chat = memo(() => {
         if (change.type === "added") {
           const callData = change.doc.data()
           if (callData.receiverId === currentUser.id && callData.status === "pending") {
-            toast.info(`${user.username} đang gọi video cho bạn!`, {
+            toast.info(`${user.username} is calling for you!`, {
               onClick: () => {
                 window.open(`/call?callId=${change.doc.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
               },
@@ -112,7 +112,7 @@ const Chat = memo(() => {
       setIsRecording(true)
       setRecordTime(0)
     } catch (err) {
-      toast.error("Không thể ghi âm: " + getErrorMessage(err))
+      toast.error("Cant record" + getErrorMessage(err))
     }
   }
 
@@ -186,7 +186,7 @@ const Chat = memo(() => {
 
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
 
-      const userChatsDataPromises = memberIds.map(async (id: string): Promise<UserChatsResult | null> => {
+      const userChatsDataPromises = memberIds!.map(async (id: string): Promise<UserChatsResult | null> => {
         const userChatsRef = doc(db, "userchats", id)
         const userChatsSnapshot = await getDoc(userChatsRef)
         if (userChatsSnapshot.exists()) {
@@ -236,7 +236,7 @@ const Chat = memo(() => {
     const callWindow = window.open(`/call?callId=${callRef.id}&chatId=${chatId}`, "VideoCall", "width=800,height=600")
 
     if (!callWindow) {
-      toast.error("Vui lòng cho phép popup để thực hiện cuộc gọi!")
+      toast.error("Please allow popup to make the video call!!!")
       return
     }
 
@@ -277,7 +277,7 @@ const Chat = memo(() => {
       </div>
 
       <div className='flex-1 overflow-y-auto p-4 max-w-[600px]'>
-        {isLoadingMembers ? <p>Đang tải thông tin thành viên...</p> : renderMessages(chat, currentUser, memberInfo)}
+        {isLoadingMembers ? <p>Loading</p> : renderMessages(chat, currentUser, memberInfo)}
         {(img.url || audioBlob) && (
           <div className='flex justify-end mb-4'>
             <div className='max-w-xs p-3 rounded-lg bg-blue-500 text-white relative'>
@@ -342,7 +342,7 @@ const Chat = memo(() => {
                       onClick={stopRecording}
                       className='px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600'
                     >
-                      Dừng
+                      Stop
                     </button>
                   </div>
                 ) : audioBlob ? (

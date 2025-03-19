@@ -1,8 +1,12 @@
+import { toast } from "react-toastify"
+
+import { getErrorMessage } from "~/utils"
+
 interface CloudinaryResponse {
   secure_url: string
 }
 
-const upload = async (file: File): Promise<string> => {
+export const upload = async (file: File): Promise<string> => {
   const date = new Date()
   const cloudName = "dvtegyldl"
   const uploadPreset = "video-chat-app"
@@ -21,16 +25,14 @@ const upload = async (file: File): Promise<string> => {
       .then((response) => response.json() as Promise<CloudinaryResponse>)
       .then((data) => {
         if (data.secure_url) {
-          console.log("Upload done, mầy! Here’s the URL:", data.secure_url)
           resolve(data.secure_url)
         } else {
-          reject(new Error("Upload failed, mầy! No URL returned."))
+          reject(new Error())
         }
       })
       .catch((error: Error) => {
-        reject(new Error("Something went wrong, mầy! " + error.message))
+        toast.error(getErrorMessage(error))
+        reject(new Error("Something went wrong" + error.message))
       })
   })
 }
-
-export default upload

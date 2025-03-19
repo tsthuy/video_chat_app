@@ -4,7 +4,7 @@ import { doc, getDoc } from "firebase/firestore"
 import { QUERY_KEYS } from "~/constants"
 import { db } from "~/lib/firebase"
 import { fetchUserChats } from "~/services/user.service"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 
 export function useUserChats(userId: string) {
@@ -33,7 +33,7 @@ export function useMembersChatGroup(chatId: string | null) {
       const membersArray = await Promise.all(memberPromises)
       return membersArray.reduce((acc, curr) => ({ ...acc, ...curr }), {})
     },
-    enabled: !!chatId && !!group && !!group.memberIds.length,
+    enabled: !!chatId && !!group && !!group.memberIds?.length,
     staleTime: 5 * 60 * 1000
   })
 }

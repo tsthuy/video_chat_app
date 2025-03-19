@@ -2,7 +2,7 @@ import { X } from "lucide-react"
 import { memo } from "react"
 
 import { Profile } from "~/components/profile/profile"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 
 const ProfilePanel = memo(() => {
   const isProfileOpen = useChatStore((state) => state.isProfileOpen)

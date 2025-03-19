@@ -1,11 +1,11 @@
 import { memo } from "react"
 
-import CallPage from "~/components/call/call"
+import Call from "~/components/call/call"
 
 const CallPages = memo(() => {
   return (
     <>
-      <CallPage />
+      <Call />
     </>
   )
 })

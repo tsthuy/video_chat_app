@@ -2,7 +2,7 @@ import { memo } from "react"
 
 import { ChatList } from "~/components/list/chat-list"
 import { cn } from "~/lib/utils"
-import { useChatStore } from "~/stores/use-chat.store"
+import { useChatStore } from "~/stores"
 
 const ListUserChat = memo(() => {
   const chatId = useChatStore((state) => state.chatId)

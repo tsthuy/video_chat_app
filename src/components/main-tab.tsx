@@ -5,7 +5,7 @@ import { toast } from "react-toastify"
 
 import { auth } from "~/lib/firebase"
 import { useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
+import { getErrorMessage } from "~/utils"
 
 const MainTab = memo(() => {
   const currentUser = useUserStore((state) => state.currentUser)

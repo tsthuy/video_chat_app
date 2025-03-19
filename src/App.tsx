@@ -5,12 +5,12 @@ import { ToastContainer } from "react-toastify"
 
 import { ProtectedRoute } from "~/components/layouts/protected-route"
 import { auth } from "~/lib/firebase"
-import { CallPages } from "~/pages/call"
-import { HomePage } from "~/pages/home"
-import { LoginPages } from "~/pages/login"
-import { SheetDemo } from "~/pages/shadcn"
-import { SignUpPage } from "~/pages/signup"
-import TestCall from "~/pages/test"
+import { CallPages } from "~/pages"
+import { HomePage } from "~/pages"
+import { LoginPages } from "~/pages"
+import { SheetDemo } from "~/pages"
+import { SignUpPage } from "~/pages"
+import { TestCall } from "~/pages"
 import { useUserStore } from "~/stores/use-user.store"
 
 export default function App() {

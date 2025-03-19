@@ -7,7 +7,7 @@ import { Button } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { db } from "~/lib/firebase"
 import { User, useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils/get-error-messages.util"
+import { getErrorMessage } from "~/utils"
 
 const AddUser = memo(() => {
   const [allUsers, setAllUsers] = useState<User[]>([])
@@ -98,7 +98,7 @@ const AddUser = memo(() => {
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
         <DialogHeader>
-          <DialogTitle>Add user to Chat</DialogTitle>
+          <DialogTitle className='text-center'>Add user to Chat</DialogTitle>
         </DialogHeader>
 
         <div className='max-h-[300px] overflow-y-auto'>
