@@ -194,7 +194,7 @@ const Call = () => {
       <h2 className='text-xl mb-4 text-center'>Video Call</h2>
       {callStatus === "pending" && <p className='text-center'>Connecting...</p>}
 
-      <div className='flex flex-col-reverse sm:flex-row gap-4'>
+      <div className='flex flex-col sm:flex-row gap-4'>
         <video
           ref={localVideoRef}
           autoPlay

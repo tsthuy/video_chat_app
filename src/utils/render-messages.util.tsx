@@ -27,14 +27,14 @@ export const renderMessages = (
             />
           )}
           <div
-            className={`max-w-[300px] p-3 rounded-lg ${isSender ? "bg-[#dbebff] text-black" : "bg-gray-200 text-gray-800"}`}
+            className={`sm:max-w-[300px] max-w-[250px] p-3 rounded-lg ${isSender ? "bg-[#dbebff] text-black" : "bg-gray-200 text-gray-800"}`}
           >
             {sender && isFirstInGroup && <p className='text-xs font-bold'>{sender.username}</p>}
             {message.type === "text" && <p className='text-wrap break-words'>{message.text}</p>}
             {message.type === "image" && <img src={message.img} alt='image' className='w-full rounded-lg mb-2' />}
             {message.type === "video" && <video src={message.img} controls className='w-full rounded-lg mb-2' />}
             {message.type === "audio" && (
-              <audio src={message.audio} controls className='min-w-[40px] max-w-[240px] mb-2' />
+              <audio src={message.audio} controls className='min-w-[40px] sm:max-w-[240px] max-w-[200px] mb-2' />
             )}
             {message.type === "file" && (
               <a

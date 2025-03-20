@@ -118,8 +118,9 @@ export const LoginForm = memo(function LoginForm() {
             {isLoading && <Loader8 />}Login
           </Button>
           <Button onClick={handleLoginWithGoogle} disabled={isGoogleLoading || isLoading} className='py-5'>
+            {isGoogleLoading && <Loader8 />}
             <img src='/images/google.png' alt='Login with Google' />
-            {isGoogleLoading && <Loader8 />}Login with Google
+            Login with Google
           </Button>
           <p className='text-right '>
             You dont have an account?{" "}

@@ -45,7 +45,7 @@ export default function App() {
           <Route path='/shadcn' element={<SheetDemo />} />
         </Routes>
       </BrowserRouter>
-      <ToastContainer position='top-center' />
+      <ToastContainer autoClose={3000} position='top-center' />
     </>
   )
 }

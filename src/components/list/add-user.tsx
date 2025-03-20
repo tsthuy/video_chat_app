@@ -3,16 +3,24 @@ import { UserPlus } from "lucide-react"
 import { memo, useEffect, useState } from "react"
 import { toast } from "react-toastify"
 
+import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { db } from "~/lib/firebase"
+import { useChatStore } from "~/stores"
 import { User, useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
 
 const AddUser = memo(() => {
+  const currentUser = useUserStore((state) => state.currentUser)
+  const changeChat = useChatStore((state) => state.changeChat)
+
+  const [selectUser, setSelectUser] = useState<User>()
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [userChats, setUserChats] = useState<UserChatItem[]>([])
-  const { currentUser } = useUserStore()
+  const [isAdding, setIsAdding] = useState(false)
+
+  const [openDialog, setOpenDialog] = useState(false)
 
   useEffect(() => {
     const fetchUsersAndChats = async () => {
@@ -45,6 +53,9 @@ const AddUser = memo(() => {
   }
 
   const handleAdd = async (selectedUser: User) => {
+    setSelectUser(selectedUser)
+    setIsAdding(true)
+
     const chatRef = collection(db, "chats")
     const userChatsRef = collection(db, "userchats")
 
@@ -58,7 +69,7 @@ const AddUser = memo(() => {
       await updateDoc(doc(userChatsRef, selectedUser.id), {
         chats: arrayUnion({
           chatId: newChatRef.id,
-          lastMessage: "",
+          lastMessage: "Let's say hello to start the chat",
           receiverId: currentUser?.id,
           updatedAt: Date.now()
         })
@@ -67,7 +78,7 @@ const AddUser = memo(() => {
       await updateDoc(doc(userChatsRef, currentUser?.id), {
         chats: arrayUnion({
           chatId: newChatRef.id,
-          lastMessage: "",
+          lastMessage: "Let's say hello to start the chat",
           receiverId: selectedUser.id,
           updatedAt: Date.now()
         })
@@ -83,14 +94,18 @@ const AddUser = memo(() => {
         }
       ])
 
+      changeChat(newChatRef.id, selectedUser)
+      setOpenDialog(false)
       toast.success(`Added ${selectedUser.username} to chat successfully!!!`)
     } catch (error) {
       toast.error(getErrorMessage(error))
+    } finally {
+      setIsAdding(false)
     }
   }
 
   return (
-    <Dialog>
+    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger asChild>
         <Button type='button' variant='outline'>
           <UserPlus />
@@ -98,7 +113,7 @@ const AddUser = memo(() => {
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
         <DialogHeader>
-          <DialogTitle className='text-center'>Add user to Chat</DialogTitle>
+          <DialogTitle className='text-center'>Add user to Chat </DialogTitle>
         </DialogHeader>
 
         <div className='max-h-[300px] overflow-y-auto'>
@@ -115,7 +130,10 @@ const AddUser = memo(() => {
                 </div>
 
                 {!hasConversation(user.id) ? (
-                  <Button onClick={() => handleAdd(user)}>Add</Button>
+                  <Button disabled={isAdding} onClick={() => handleAdd(user)}>
+                    {isAdding && selectUser?.id === user.id && <Loader8 />}
+                    Add
+                  </Button>
                 ) : (
                   <span className='text-gray-500'>Added</span>
                 )}

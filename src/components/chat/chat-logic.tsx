@@ -42,10 +42,14 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const endRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const micTriggerRef = useRef<HTMLButtonElement>(null)
   const toastIdRef = useRef<string | number | null>(null)
 
   const isDisabled = isSending || isRecording || isLoadingMembers
+
+  const handleRemoveFile = useCallback(() => {
+    setImg({ file: null, url: "" })
+    setAudioBlob(null)
+  }, [])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -55,11 +59,12 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     if (!chatId) return
 
     const unSub = onSnapshot(doc(db, "chats", chatId), (res: DocumentSnapshot) => {
+      handleRemoveFile()
       setChat(res.data() as ChatData)
     })
 
     return () => unSub()
-  }, [chatId])
+  }, [chatId, handleRemoveFile])
 
   useEffect(() => {
     if (isRecording) {
@@ -134,7 +139,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
-      micTriggerRef.current?.click()
+      return
     }
   }, [])
 
@@ -147,11 +152,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       setImg({ file: e.target.files[0], url: URL.createObjectURL(e.target.files[0]) })
       e.target.value = ""
     }
-  }, [])
-
-  const handleRemoveFile = useCallback(() => {
-    setImg({ file: null, url: "" })
-    setAudioBlob(null)
   }, [])
 
   const handleSend = useCallback(async () => {
@@ -298,7 +298,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     isLoadingMembers,
     memberInfo,
     endRef,
-    micTriggerRef,
     handleEmoji,
     handleFile,
     handleRemoveFile,

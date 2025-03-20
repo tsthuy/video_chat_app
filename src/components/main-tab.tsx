@@ -4,15 +4,19 @@ import { memo } from "react"
 import { toast } from "react-toastify"
 
 import { auth } from "~/lib/firebase"
+import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
 
 const MainTab = memo(() => {
   const currentUser = useUserStore((state) => state.currentUser)
+  const resetChat = useChatStore((state) => state.resetChat)
 
   const handleLogout = async () => {
     try {
       await signOut(auth)
+
+      resetChat()
       toast.success("Logout Successfully!!!")
     } catch (error) {
       toast.error(getErrorMessage(error))
@@ -20,7 +24,7 @@ const MainTab = memo(() => {
   }
 
   return (
-    <div className='min-w-[68px] border bg-blue-800 h-svh flex flex-col justify-between '>
+    <div className='sm:min-w-[68px] border bg-blue-600 sm:px-0 px-1 h-svh flex flex-col justify-between '>
       <div className=''>
         <figure className='flex justify-center items-center mt-4'>
           <img

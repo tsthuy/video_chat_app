@@ -168,7 +168,9 @@ export const SignUpForm = memo(function LoginForm() {
         {avatar.url && (
           <div className='mt-2 relative max-w-fit'>
             <img src={avatar.url} alt='Avatar preview' className='w-24 h-24 object-cover rounded-full' />
-            <X onClick={handleRemoveImage} className='absolute top-0 right-0' />
+            <button className=''>
+              <X onClick={handleRemoveImage} className='absolute text-white bg-red-600 rounded-2xl top-0 left-0' />
+            </button>
           </div>
         )}
 
