@@ -28,6 +28,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const [isSending, setIsSending] = useState<boolean>(false)
   const [open, setOpen] = useState<boolean>(false)
 
+  const textareaWrapperRef = useRef<HTMLDivElement>(null)
+
   const [text, setText] = useState<string>("")
   const [img, setImg] = useState<ImgState>({ file: null, url: "" })
   const [isRecording, setIsRecording] = useState(false)
@@ -58,10 +60,24 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   useEffect(() => {
     if (!chatId) return
 
+    if (textareaWrapperRef.current) {
+      const textarea = textareaWrapperRef.current.querySelector("textarea") as HTMLTextAreaElement
+      if (textarea) {
+        textarea.focus()
+        textarea.setSelectionRange(text.length, text.length)
+      }
+    }
+
     const unSub = onSnapshot(doc(db, "chats", chatId), (res: DocumentSnapshot) => {
       handleRemoveFile()
       setChat(res.data() as ChatData)
     })
+
+    setText("")
+
+    if (chat?.messages.length === 0) {
+      setText("🙌")
+    }
 
     return () => unSub()
   }, [chatId, handleRemoveFile])
@@ -159,7 +175,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     setIsSending(true)
 
     setText("")
-    handleRemoveFile()
 
     try {
       let imgUrl: string | null = null
@@ -228,6 +243,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
       await batch.commit()
       onSend(message)
+      handleRemoveFile()
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -315,7 +331,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     user,
     handleKeyDown,
     toggleProfile,
-    handleToggleUserChat
+    handleToggleUserChat,
+    textareaWrapperRef
   }
 }
 

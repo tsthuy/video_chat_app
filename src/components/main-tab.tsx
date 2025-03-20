@@ -42,7 +42,10 @@ const MainTab = memo(() => {
       </div>
 
       <div className='flex justify-center items-center pb-4'>
-        <button onClick={handleLogout} className='cursor-pointer p-2 border rounded-lg bg-accent'>
+        <button
+          onClick={handleLogout}
+          className='cursor-pointer p-2 border rounded-lg bg-accent hover:bg-red-500 hover:[&>svg]:text-white'
+        >
           <LogOut className='size-6 text-black ' />
         </button>
       </div>

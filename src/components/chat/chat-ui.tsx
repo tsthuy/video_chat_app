@@ -1,9 +1,10 @@
 import EmojiPicker from "emoji-picker-react"
 import { ChevronsLeft, Columns2, Mic, Paperclip, SmilePlus, Trash2, Video } from "lucide-react"
-import { memo, useEffect, useRef, useState } from "react"
+import { memo, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
 import ChatContainer from "~/components/chat/chat-logic"
+import { Loader8 } from "~/components/loader/loader8"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Textarea } from "~/components/ui/textarea"
 import { cn } from "~/lib/utils"
@@ -37,17 +38,12 @@ const ChatUI = ({
   user,
   handleKeyDown,
   toggleProfile,
-  handleToggleUserChat
+  handleToggleUserChat,
+  textareaWrapperRef
 }: ReturnType<typeof ChatContainer>) => {
   const isDisabled = isSending || isRecording || isLoadingMembers
   const [micPopoverOpen, setMicPopoverOpen] = useState(false)
   const toastIdRef = useRef<string | number | null>(null)
-
-  useEffect(() => {
-    if (chat?.messages.length === 0) {
-      setText("🙌")
-    }
-  }, [chat?.messages, setText])
 
   return (
     <div className='flex flex-col h-full border-l flex-1 border-gray-200 overflow-hidden'>
@@ -69,7 +65,7 @@ const ChatUI = ({
             />
           </figure>
 
-          <h3>{group ? group.groupName : user?.username}</h3>
+          <h3 className='font-medium'>{group ? group.groupName : user?.username}</h3>
         </div>
 
         <div className='flex'>
@@ -102,7 +98,9 @@ const ChatUI = ({
                 {img.url && (
                   <>
                     {img.file?.type.startsWith("image") && (
-                      <img src={img.url} alt='preview' className='w-full rounded-lg' />
+                      <>
+                        <img src={img.url} alt='preview' className='w-full rounded-lg' />
+                      </>
                     )}
                     {img.file?.type.startsWith("video") && (
                       <video src={img.url} controls className='w-full rounded-lg' />
@@ -121,12 +119,19 @@ const ChatUI = ({
                     className='min-w-[80px] max-w-[200px] sm:max-w-[240px]'
                   />
                 )}
-                <button
-                  onClick={handleRemoveFile}
-                  className='absolute -top-2 -left-2 p-[2px] bg-red-500 text-white rounded'
-                >
-                  <Trash2 />
-                </button>
+
+                {!isSending ? (
+                  <button
+                    onClick={handleRemoveFile}
+                    className='absolute -top-2 -left-2 p-[2px] bg-red-500 text-white rounded'
+                  >
+                    <Trash2 />
+                  </button>
+                ) : (
+                  <button className='absolute inset-0 flex items-center justify-center bg-black/50 rounded'>
+                    <Loader8 />
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -157,7 +162,7 @@ const ChatUI = ({
           </Popover>
         </div>
 
-        <div className='flex-1 items-center min-w-0'>
+        <div ref={textareaWrapperRef} className='flex-1 items-center min-w-0'>
           <Textarea
             rows={1}
             placeholder={!!img.file || !!audioBlob ? "Please address the pre-review file" : "Type a message..."}
@@ -215,8 +220,8 @@ const ChatUI = ({
                       <button
                         type='button'
                         onClick={() => {
-                          setMicPopoverOpen(false)
                           stopRecording()
+                          setMicPopoverOpen(false)
                         }}
                         className='px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600'
                       >
