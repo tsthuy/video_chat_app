@@ -11,7 +11,8 @@ import { cn } from "~/lib/utils"
 import { renderMessages } from "~/utils/render-messages.util"
 
 const ChatUI = ({
-  chat,
+  error,
+  messages,
   isSending,
   text,
   setText,
@@ -21,7 +22,6 @@ const ChatUI = ({
   recordTime,
   isLoadingMembers,
   memberInfo,
-  endRef,
   handleEmoji,
   handleFile,
   handleRemoveFile,
@@ -39,7 +39,9 @@ const ChatUI = ({
   handleKeyDown,
   toggleProfile,
   handleToggleUserChat,
-  textareaWrapperRef
+  textareaWrapperRef,
+  messagesContainerRef,
+  isLoadingMessages
 }: ReturnType<typeof ChatContainer>) => {
   const isDisabled = isSending || isRecording || isLoadingMembers
   const [micPopoverOpen, setMicPopoverOpen] = useState(false)
@@ -83,14 +85,18 @@ const ChatUI = ({
         </div>
       </div>
 
-      {chat?.messages.length === 0 ? (
+      {error && <div className='text-red-500 text-center'>{error}</div>}
+
+      {messages.length === 0 ? (
         <p className='text-center items-center h-full flex justify-center'>Say hello to start the conversation</p>
       ) : (
-        <div className='flex-1 overflow-y-auto p-4'>
+        <div ref={messagesContainerRef} className='flex-1 overflow-y-auto p-4'>
+          {isLoadingMessages && <p className='text-center'>Đang tải tin nhắn cũ hơn...</p>}
+
           {isLoadingMembers ? (
             <p className='text-center'>Loading...</p>
           ) : (
-            renderMessages(chat, currentUser, memberInfo, user)
+            renderMessages(messages, currentUser, memberInfo, user)
           )}
           {(img.url || audioBlob) && (
             <div className='flex justify-end mb-4 pt-2'>
@@ -98,9 +104,7 @@ const ChatUI = ({
                 {img.url && (
                   <>
                     {img.file?.type.startsWith("image") && (
-                      <>
-                        <img src={img.url} alt='preview' className='w-full rounded-lg' />
-                      </>
+                      <img src={img.url} alt='preview' className='w-full rounded-lg' />
                     )}
                     {img.file?.type.startsWith("video") && (
                       <video src={img.url} controls className='w-full rounded-lg' />
@@ -135,7 +139,6 @@ const ChatUI = ({
               </div>
             </div>
           )}
-          <div ref={endRef}></div>
         </div>
       )}
 

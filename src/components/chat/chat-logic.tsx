@@ -1,12 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   addDoc,
-  arrayUnion,
   collection,
   doc,
-  DocumentSnapshot,
   getDoc,
+  getDocs,
+  limit,
   onSnapshot,
+  orderBy,
   query,
+  startAfter,
   Timestamp,
   updateDoc,
   where,
@@ -24,11 +27,18 @@ import { getErrorMessage } from "~/utils"
 import { upload } from "~/utils"
 
 const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => void; onVideoCall: () => void }) => {
-  const [chat, setChat] = useState<ChatData | undefined>(undefined)
+  const [messages, setMessages] = useState<Message[]>([])
   const [isSending, setIsSending] = useState<boolean>(false)
   const [open, setOpen] = useState<boolean>(false)
+  const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState<boolean>(true)
+  const [lastVisibleMessage, setLastVisibleMessage] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState<boolean>(true)
 
   const textareaWrapperRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
 
   const [text, setText] = useState<string>("")
   const [img, setImg] = useState<ImgState>({ file: null, url: "" })
@@ -41,7 +51,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     useChatStore()
   const { data: memberInfo = {}, isLoading: isLoadingMembers } = useMembersChatGroup(chatId)
 
-  const endRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const toastIdRef = useRef<string | number | null>(null)
@@ -54,8 +63,87 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   }, [])
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [chat?.messages])
+    if (!chatId) return
+
+    setIsLoadingMessages(true)
+    setIsInitialLoad(true)
+    const messagesRef = collection(db, "chats", chatId, "messages")
+
+    const q = query(messagesRef, orderBy("createdAt", "desc"), limit(50))
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const messageList = snapshot.docs.map((doc) => doc.data() as Message)
+        setMessages(messageList.reverse())
+        setLastVisibleMessage(snapshot.docs[snapshot.docs.length - 1])
+        setHasMoreMessages(snapshot.docs.length === 50)
+        setIsLoadingMessages(false)
+        setIsInitialLoad(false)
+      },
+      (error) => {
+        toast.error(getErrorMessage(error))
+        setError("Không thể tải tin nhắn. Vui lòng thử lại sau.")
+        setIsLoadingMessages(false)
+        setIsInitialLoad(false)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [chatId])
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+      setShouldAutoScroll(isNearBottom)
+
+      if (!isInitialLoad && container.scrollTop < 100 && hasMoreMessages && !isLoadingMessages) {
+        fetchMoreMessages()
+      }
+    }
+
+    container.addEventListener("scroll", handleScroll)
+    return () => container.removeEventListener("scroll", handleScroll)
+  }, [hasMoreMessages, isLoadingMessages, isInitialLoad])
+
+  const fetchMoreMessages = async () => {
+    if (!chatId || !lastVisibleMessage) return
+
+    const container = messagesContainerRef.current
+    const scrollHeightBefore = container?.scrollHeight || 0
+
+    setIsLoadingMessages(true)
+    const messagesRef = collection(db, "chats", chatId, "messages")
+
+    const q = query(messagesRef, orderBy("createdAt", "desc"), startAfter(lastVisibleMessage), limit(50))
+
+    try {
+      const snapshot = await getDocs(q)
+      const moreMessages = snapshot.docs.map((doc) => doc.data() as Message)
+      setMessages((prev) => [...moreMessages.reverse(), ...prev])
+      setLastVisibleMessage(snapshot.docs[snapshot.docs.length - 1])
+      setHasMoreMessages(snapshot.docs.length === 50)
+
+      if (container) {
+        const scrollHeightAfter = container.scrollHeight
+        container.scrollTop = container.scrollTop + (scrollHeightAfter - scrollHeightBefore)
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    } finally {
+      setIsLoadingMessages(false)
+    }
+  }
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (container && shouldAutoScroll) {
+      container.scrollTop = container.scrollHeight
+    }
+  }, [messages, shouldAutoScroll])
 
   useEffect(() => {
     if (!chatId) return
@@ -68,19 +156,11 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       }
     }
 
-    const unSub = onSnapshot(doc(db, "chats", chatId), (res: DocumentSnapshot) => {
-      handleRemoveFile()
-      setChat(res.data() as ChatData)
-    })
-
     setText("")
-
-    if (chat?.messages.length === 0) {
+    if (messages.length === 0) {
       setText("🙌")
     }
-
-    return () => unSub()
-  }, [chatId, handleRemoveFile])
+  }, [chatId, messages])
 
   useEffect(() => {
     if (isRecording) {
@@ -128,6 +208,12 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     return () => unsubscribe()
   }, [currentUser, user, group, chatId])
 
+  useEffect(() => {
+    if (text || img.file || audioBlob) {
+      setShouldAutoScroll(true)
+    }
+  }, [text, img.file, audioBlob])
+
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -173,6 +259,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   const handleSend = useCallback(async () => {
     if (!chatId || !currentUser || (!user && !group) || (!text && !img.file && !audioBlob)) return
     setIsSending(true)
+    setShouldAutoScroll(true)
 
     setText("")
 
@@ -212,11 +299,11 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         ...(fileUrl && { file: fileUrl })
       }
 
-      const batch = writeBatch(db)
-      const chatRef = doc(db, "chats", chatId)
-      batch.update(chatRef, { messages: arrayUnion(message) })
+      const messagesRef = collection(db, "chats", chatId, "messages")
+      await addDoc(messagesRef, message)
 
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
+      const batch = writeBatch(db)
 
       const userChatsDataPromises = memberIds!.map(async (id: string): Promise<UserChatsResult | null> => {
         const userChatsRef = doc(db, "userchats", id)
@@ -231,6 +318,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         (result): result is UserChatsResult => result !== null
       )
 
+      handleRemoveFile()
+
       userChatsResults.forEach(({ id, ref, data }: UserChatsResult) => {
         const chatIndex = data.chats.findIndex((c) => c.chatId === chatId)
         if (chatIndex !== -1) {
@@ -243,7 +332,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
       await batch.commit()
       onSend(message)
-      handleRemoveFile()
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -304,16 +392,16 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   }
 
   return {
-    chat,
+    messages,
     isSending,
     text,
+    setText,
     img,
     isRecording,
     audioBlob,
     recordTime,
     isLoadingMembers,
     memberInfo,
-    endRef,
     handleEmoji,
     handleFile,
     handleRemoveFile,
@@ -327,12 +415,14 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     setOpen,
     isCurrentUserBlocked,
     isReceiverBlocked,
-    setText,
     user,
     handleKeyDown,
     toggleProfile,
     handleToggleUserChat,
-    textareaWrapperRef
+    textareaWrapperRef,
+    messagesContainerRef,
+    isLoadingMessages,
+    error
   }
 }
 

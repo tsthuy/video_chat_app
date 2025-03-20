@@ -47,8 +47,7 @@ const AddGroupUsers = memo(() => {
 
     try {
       const chatRef = await addDoc(collection(db, "chats"), {
-        createdAt: Timestamp.now(),
-        messages: []
+        createdAt: Timestamp.now()
       })
 
       const groupImgUrl = groupImg.file ? await upload(groupImg.file) : null

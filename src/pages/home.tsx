@@ -10,8 +10,6 @@ import { useChatStore } from "~/stores"
 
 const HomePage = memo(() => {
   const chatId = useChatStore((state) => state.chatId)
-  const user = useChatStore((state) => state.user)
-  const group = useChatStore((state) => state.group)
   const isProfileOpen = useChatStore((state) => state.isProfileOpen)
   const setIsProfileOpen = useChatStore((state) => state.setIsProfileOpen)
   const isUserChatOpen = useChatStore((state) => state.isUserChatOpen)
@@ -45,7 +43,7 @@ const HomePage = memo(() => {
 
       {chatId && (
         <>
-          {!isLgOrSmaller && isProfileOpen && <Profile user={user} group={group!} />}
+          {!isLgOrSmaller && isProfileOpen && <Profile />}
           {isLgOrSmaller && <ProfilePanel />}
         </>
       )}

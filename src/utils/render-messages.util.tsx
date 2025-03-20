@@ -2,18 +2,18 @@
 import { formatTime } from "~/utils"
 
 export const renderMessages = (
-  chat: ChatData | undefined,
+  messages: Message[], // Nhận messages thay vì chat
   currentUser: User | null,
   memberInfo: Record<string, User>,
   user?: User | null
 ) => {
-  if (!chat?.messages) return null
+  if (!messages || messages.length === 0) return null
 
-  return chat.messages.map((message, index) => {
+  return messages.map((message, index) => {
     const isSender = message.senderId === currentUser?.id
     const sender = isSender ? null : memberInfo[message.senderId]
-    const isLastInGroup = index === chat.messages.length - 1 || chat.messages[index + 1]?.senderId !== message.senderId
-    const isFirstInGroup = index === 0 || chat.messages[index - 1]?.senderId !== message.senderId
+    const isLastInGroup = index === messages.length - 1 || messages[index + 1]?.senderId !== message.senderId
+    const isFirstInGroup = index === 0 || messages[index - 1]?.senderId !== message.senderId
 
     return (
       <div key={message.createdAt.toString()} className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2`}>

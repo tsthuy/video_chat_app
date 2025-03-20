@@ -7,8 +7,6 @@ import { useChatStore } from "~/stores"
 const ProfilePanel = memo(() => {
   const isProfileOpen = useChatStore((state) => state.isProfileOpen)
   const setIsProfileOpen = useChatStore((state) => state.setIsProfileOpen)
-  const user = useChatStore((state) => state.user)
-  const group = useChatStore((state) => state.group)
 
   return (
     <>
@@ -24,7 +22,7 @@ const ProfilePanel = memo(() => {
             <X />
           </button>
         </div>
-        <Profile user={user} group={group!} />
+        <Profile />
       </div>
     </>
   )

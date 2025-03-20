@@ -71,7 +71,7 @@ const ChatList = memo(() => {
 
   return (
     <>
-      <div className='pt-2 px-2'>
+      <div className='py-2 px-2'>
         <div className='flex w-full gap-2'>
           <Input onChange={(e) => setInput(e.target.value)} name='username' placeholder='Search...' />
 
@@ -81,35 +81,37 @@ const ChatList = memo(() => {
         </div>
       </div>
 
-      <div className='flex flex-col justify-center pt-4'>
-        {filterChats &&
-          filterChats.map((chat) => (
-            <div
-              onClick={() => handleSelect(chat)}
-              className={cn(
-                "flex gap-2 items-center py-2 px-2 cursor-pointer",
-                chatId !== chat.chatId && "hover:bg-accent",
-                chatId === chat.chatId ? "bg-[#dbebff]" : "bg-transparent",
-                !chat.isSeen && chat.lastMessage !== "" && chat.chatId !== chatId && "bg-[#5183fe] hover:bg-[#5183fe]"
-              )}
-              key={chat.chatId}
-            >
-              <figure className='flex items-center border-2 rounded-full'>
-                <img
-                  className='rounded-full w-[50px] h-[50px]'
-                  src={chat.type === "group" ? chat.imgUrl || "/group-default.png" : chat.user?.avatar}
-                  alt='avatar'
-                />
-              </figure>
-              <div className='flex flex-col'>
-                <h3 className='flex items-center gap-2 font-medium'>
-                  {<Users className={cn(chat.type !== "group" && "hidden", "size-4")} />}{" "}
-                  {chat.type === "group" ? chat.groupName : chat.user?.username}
-                </h3>
-                <p className='text-sm truncate max-w-[250px]'>{chat.lastMessage}</p>
+      <div className='overflow-y-auto'>
+        <div className='flex flex-col justify-center'>
+          {filterChats &&
+            filterChats.map((chat) => (
+              <div
+                onClick={() => handleSelect(chat)}
+                className={cn(
+                  "flex gap-2 items-center py-2 px-2 cursor-pointer",
+                  chatId !== chat.chatId && "hover:bg-accent",
+                  chatId === chat.chatId ? "bg-[#dbebff]" : "bg-transparent",
+                  !chat.isSeen && chat.lastMessage !== "" && chat.chatId !== chatId && "bg-[#5183fe] hover:bg-[#5183fe]"
+                )}
+                key={chat.chatId}
+              >
+                <figure className='flex items-center border-2 rounded-full'>
+                  <img
+                    className='rounded-full w-[50px] h-[50px]'
+                    src={chat.type === "group" ? chat.imgUrl || "/group-default.png" : chat.user?.avatar}
+                    alt='avatar'
+                  />
+                </figure>
+                <div className='flex flex-col'>
+                  <h3 className='flex items-center gap-2 font-medium'>
+                    {<Users className={cn(chat.type !== "group" && "hidden", "size-4")} />}{" "}
+                    {chat.type === "group" ? chat.groupName : chat.user?.username}
+                  </h3>
+                  <p className='text-sm truncate max-w-[250px]'>{chat.lastMessage}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+        </div>
       </div>
     </>
   )

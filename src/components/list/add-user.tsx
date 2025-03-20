@@ -62,8 +62,7 @@ const AddUser = memo(() => {
     try {
       const newChatRef = doc(chatRef)
       await setDoc(newChatRef, {
-        createdAt: serverTimestamp(),
-        messages: []
+        createdAt: serverTimestamp()
       })
 
       await updateDoc(doc(userChatsRef, selectedUser.id), {
