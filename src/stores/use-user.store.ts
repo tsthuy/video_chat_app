@@ -2,16 +2,8 @@ import { doc, getDoc } from "firebase/firestore"
 import { toast } from "react-toastify"
 import { create } from "zustand"
 
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { getErrorMessage } from "~/utils"
-
-export interface User {
-  username: string
-  email: string
-  avatar: string
-  id: string
-  blocked: string[]
-}
 
 interface UserStore {
   currentUser: User | null

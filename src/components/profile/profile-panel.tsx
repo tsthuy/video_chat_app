@@ -18,7 +18,7 @@ const ProfilePanel = memo(() => {
         }`}
       >
         <div className='absolute top-0 right-2 p-2'>
-          <button onClick={() => useChatStore.getState().setIsProfileOpen(false)} className='text-black'>
+          <button type='button' onClick={() => useChatStore.getState().setIsProfileOpen(false)} className='text-black'>
             <X />
           </button>
         </div>

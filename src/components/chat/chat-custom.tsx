@@ -21,7 +21,7 @@ import { toast } from "react-toastify"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Textarea } from "~/components/ui/textarea"
 import { useMembersChatGroup } from "~/hooks"
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 import { UserChatsResult } from "~/types/chat-custom"
@@ -270,7 +270,7 @@ const Chat = memo(() => {
           >
             <Video className='size-6 text-black' />
           </button>
-          <button className='cursor-pointer p-2 rounded-lg'>
+          <button type='button' className='cursor-pointer p-2 rounded-lg'>
             <Info className='size-6 text-black' />
           </button>
         </div>
@@ -297,7 +297,11 @@ const Chat = memo(() => {
               {audioBlob && !img.url && (
                 <audio src={URL.createObjectURL(audioBlob)} controls className='min-w-[80px]' />
               )}
-              <button onClick={handleRemoveFile} className='absolute -top-2 -left-2 p-2 bg-red-500 text-white rounded'>
+              <button
+                type='button'
+                onClick={handleRemoveFile}
+                className='absolute -top-2 -left-2 p-2 bg-red-500 text-white rounded'
+              >
                 <X />
               </button>
             </div>

@@ -1,6 +1,6 @@
 import { doc, getDoc } from "firebase/firestore"
 
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 
 export const fetchUserChats = async (userId: string): Promise<ChatWithUser[]> => {
   const docRef = doc(db, "userchats", userId)

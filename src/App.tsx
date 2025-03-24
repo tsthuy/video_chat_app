@@ -4,14 +4,14 @@ import { BrowserRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 
 import { ProtectedRoute } from "~/components/layouts/protected-route"
-import { auth } from "~/lib/firebase"
+import { auth } from "~/libs"
 import { CallPages } from "~/pages"
 import { HomePage } from "~/pages"
 import { LoginPages } from "~/pages"
 import { SheetDemo } from "~/pages"
 import { SignUpPage } from "~/pages"
 import { TestCall } from "~/pages"
-import { useUserStore } from "~/stores/use-user.store"
+import { useUserStore } from "~/stores"
 
 export default function App() {
   const fetchUserInfo = useUserStore((state) => state.fetchUserInfo)

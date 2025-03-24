@@ -1,4 +1,3 @@
-"use client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
@@ -13,8 +12,9 @@ import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
-import { auth, db } from "~/lib/firebase"
-import { useUserStore } from "~/stores/use-user.store"
+import { auth, db } from "~/libs"
+import { cn } from "~/libs"
+import { useUserStore } from "~/stores"
 import { getErrorMessage } from "~/utils"
 import { upload } from "~/utils"
 
@@ -27,14 +27,14 @@ const formSchema = z.object({
 export const SignUpForm = memo(function LoginForm() {
   const navigate = useNavigate()
 
-  const [avatar, setAvatar] = useState<{ file: File | null; url: string }>({
+  const [avatar, setAvatar] = useState<ImgState>({
     file: null,
     url: ""
   })
 
   const fetchUserInfo = useUserStore((state) => state.fetchUserInfo)
 
-  const [loading, setLoading] = useState<boolean>()
+  const [isLoading, setIsLoading] = useState<boolean>()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -67,13 +67,12 @@ export const SignUpForm = memo(function LoginForm() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!avatar.file) return toast.warn("Please upload an avatar!")
-    setLoading(true)
+    setIsLoading(true)
 
     try {
       const res = await createUserWithEmailAndPassword(auth, values.email, values.password)
 
       const imgUrl = await upload(avatar.file)
-      console.log(imgUrl, values.display_name)
       await setDoc(doc(db, "users", res.user.uid), {
         username: values.display_name,
         email: values.email,
@@ -85,6 +84,7 @@ export const SignUpForm = memo(function LoginForm() {
       await setDoc(doc(db, "userchats", res.user.uid), {
         chats: []
       })
+
       await fetchUserInfo(res.user.uid)
 
       toast.success("Login Successfully!!!")
@@ -92,7 +92,7 @@ export const SignUpForm = memo(function LoginForm() {
     } catch (error) {
       toast.error(getErrorMessage(error))
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
   return (
@@ -107,7 +107,7 @@ export const SignUpForm = memo(function LoginForm() {
                 Name<span className='text-red-700'>*</span>
               </FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder='' type='' {...field} />
+                <Input disabled={isLoading} placeholder='' type='' {...field} />
               </FormControl>
 
               <FormMessage />
@@ -124,7 +124,7 @@ export const SignUpForm = memo(function LoginForm() {
                 Email<span className='text-red-700'>*</span>
               </FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder='' type='' {...field} />
+                <Input disabled={isLoading} placeholder='' type='' {...field} />
               </FormControl>
 
               <FormMessage />
@@ -141,7 +141,7 @@ export const SignUpForm = memo(function LoginForm() {
                 Password<span className='text-red-700'>*</span>
               </FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder='' type='password' {...field} />
+                <Input disabled={isLoading} placeholder='' type='password' {...field} />
               </FormControl>
 
               <FormMessage />
@@ -154,7 +154,7 @@ export const SignUpForm = memo(function LoginForm() {
           Choose your avatars <span className='text-red-700'>*</span>
         </label>
         <input
-          disabled={loading}
+          disabled={isLoading}
           className='hidden'
           type='file'
           id='file'
@@ -167,19 +167,21 @@ export const SignUpForm = memo(function LoginForm() {
 
         {avatar.url && (
           <div className='mt-2 relative max-w-fit'>
-            <img src={avatar.url} alt='Avatar preview' className='w-24 h-24 object-cover rounded-full' />
-            <button className=''>
-              <X onClick={handleRemoveImage} className='absolute text-white bg-red-600 rounded-2xl top-0 left-0' />
-            </button>
+            <img src={avatar.url} alt='Avatar preview' className='w-24 h-24 object-contain border rounded-full' />
+            {!isLoading && (
+              <button type='button' className=''>
+                <X onClick={handleRemoveImage} className='absolute text-white bg-red-600 rounded-2xl top-0 left-0' />
+              </button>
+            )}
           </div>
         )}
 
         <div className='flex flex-col gap-4'>
-          <Button disabled={loading} className='py-5 ' type='submit'>
-            {loading && <Loader8 />}
+          <Button disabled={isLoading} className='py-5 ' type='submit'>
+            {isLoading && <Loader8 />}
             Sign Up
           </Button>
-          <p className='text-right'>
+          <p className={cn("text-right", isLoading && "opacity-70 pointer-events-none")}>
             Already got a account?
             <Link className='underline text-blue-700 pl-2' to={"/login"}>
               Login

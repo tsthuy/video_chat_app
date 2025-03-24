@@ -19,9 +19,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
 import { useMembersChatGroup } from "~/hooks"
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { useChatStore } from "~/stores"
-import { useUserStore } from "~/stores/use-user.store"
+import { useUserStore } from "~/stores"
 import { UserChatsResult } from "~/types/chat-custom"
 import { getErrorMessage } from "~/utils"
 import { upload } from "~/utils"
@@ -66,6 +66,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     if (!chatId) return
 
     setIsLoadingMessages(true)
+    setShouldAutoScroll(true)
     setIsInitialLoad(true)
     const messagesRef = collection(db, "chats", chatId, "messages")
 
@@ -83,7 +84,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       },
       (error) => {
         toast.error(getErrorMessage(error))
-        setError("Không thể tải tin nhắn. Vui lòng thử lại sau.")
+        setError("Some things went wrong, please try again!")
         setIsLoadingMessages(false)
         setIsInitialLoad(false)
       }
@@ -113,11 +114,13 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     if (!chatId || !lastVisibleMessage) return
 
     const container = messagesContainerRef.current
-    const scrollHeightBefore = container?.scrollHeight || 0
+    if (!container) return
+
+    const scrollTopBefore = container.scrollTop
+    const scrollHeightBefore = container.scrollHeight
 
     setIsLoadingMessages(true)
     const messagesRef = collection(db, "chats", chatId, "messages")
-
     const q = query(messagesRef, orderBy("createdAt", "desc"), startAfter(lastVisibleMessage), limit(50))
 
     try {
@@ -129,7 +132,13 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
       if (container) {
         const scrollHeightAfter = container.scrollHeight
-        container.scrollTop = container.scrollTop + (scrollHeightAfter - scrollHeightBefore)
+        const scrollDifference = scrollHeightAfter - scrollHeightBefore
+
+        if (scrollTopBefore < 50) {
+          container.scrollTop = scrollTopBefore
+        } else {
+          container.scrollTop = scrollTopBefore + scrollDifference
+        }
       }
     } catch (error) {
       toast.error(getErrorMessage(error))
@@ -140,6 +149,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
   useEffect(() => {
     const container = messagesContainerRef.current
+    console.log("scrollHeight", container?.scrollHeight)
+    console.log("scrollTop", container?.scrollTop)
     if (container && shouldAutoScroll) {
       container.scrollTop = container.scrollHeight
     }
@@ -209,10 +220,10 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   }, [currentUser, user, group, chatId])
 
   useEffect(() => {
-    if (text || img.file || audioBlob) {
+    if (img.file || audioBlob) {
       setShouldAutoScroll(true)
     }
-  }, [text, img.file, audioBlob])
+  }, [img.file, audioBlob])
 
   const startRecording = useCallback(async () => {
     try {
@@ -299,6 +310,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         ...(fileUrl && { file: fileUrl })
       }
 
+      handleRemoveFile()
+
       const messagesRef = collection(db, "chats", chatId, "messages")
       await addDoc(messagesRef, message)
 
@@ -317,8 +330,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       const userChatsResults = (await Promise.all(userChatsDataPromises)).filter(
         (result): result is UserChatsResult => result !== null
       )
-
-      handleRemoveFile()
 
       userChatsResults.forEach(({ id, ref, data }: UserChatsResult) => {
         const chatIndex = data.chats.findIndex((c) => c.chatId === chatId)

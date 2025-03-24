@@ -83,7 +83,7 @@ export default tseslint.config(
   },
 
   {
-    files: ["src/**/index.ts", "src/**/App.tsx", "/types**"],
+    files: ["src/**/index.ts", "src/**/App.tsx", "/types**", "src/**/utils.ts"],
     rules: {
       "check-file/filename-naming-convention": "off",
       "check-file/folder-naming-convention": "off"
