@@ -7,8 +7,8 @@ import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { Input } from "~/components/ui/input"
-import { db } from "~/lib/firebase"
-import { cn } from "~/lib/utils"
+import { db } from "~/libs"
+import { cn } from "~/libs"
 import { useChatStore, useUserStore } from "~/stores"
 import { getErrorMessage, upload } from "~/utils"
 
@@ -88,6 +88,7 @@ const AddGroupUsers = memo(() => {
   }
 
   const handleSelectMember = (userId: string) => {
+    if (isAdding) return
     setSelectedMembers((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]))
   }
 
@@ -101,7 +102,7 @@ const AddGroupUsers = memo(() => {
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger asChild>
         <Button type='button' variant='outline'>
-          <Users />
+          <Users className='size-6' />
         </Button>
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
@@ -118,7 +119,11 @@ const AddGroupUsers = memo(() => {
 
             {groupImg.url && (
               <div className='relative'>
-                <img src={groupImg.url} alt='group preview ' className='w-14 h-14 rounded-full border-black border' />
+                <img
+                  src={groupImg.url}
+                  alt='group preview '
+                  className='w-14 h-14 rounded-full border-black border object-contain'
+                />
                 <button
                   onClick={() => setGroupImg({ file: null, url: "" })}
                   className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1'
@@ -128,6 +133,7 @@ const AddGroupUsers = memo(() => {
               </div>
             )}
           </div>
+
           <div className='max-h-60 overflow-y-auto'>
             {allUsers.map((u) => (
               <div
@@ -135,7 +141,8 @@ const AddGroupUsers = memo(() => {
                 onClick={() => handleSelectMember(u.id)}
                 className={cn(
                   "flex items-center gap-2 p-2 cursor-pointer",
-                  selectedMembers.includes(u.id) ? "bg-blue-100" : "hover:bg-gray-100"
+                  selectedMembers.includes(u.id) ? "bg-blue-100" : "hover:bg-gray-100",
+                  isAdding && "cursor-not-allowed pointer-events-none"
                 )}
               >
                 <img src={u.avatar} alt={u.username} className='w-8 h-8 rounded-full' />

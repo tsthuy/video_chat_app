@@ -2,8 +2,8 @@ import { addDoc, collection, doc, getDoc, onSnapshot, setDoc, updateDoc } from "
 import { useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
-import { db } from "~/lib/firebase"
-import { useUserStore } from "~/stores/use-user.store"
+import { db } from "~/libs"
+import { useUserStore } from "~/stores"
 import { getErrorMessage } from "~/utils"
 
 const servers: RTCConfiguration = {
@@ -44,7 +44,6 @@ const Call = () => {
 
   useEffect(() => {
     if (!callId || !chatId || !currentUser || !callerId || !receiverId) {
-      console.error("Invalid call parameters", callId, chatId, currentUser, callerId, receiverId)
       return
     }
 
@@ -54,7 +53,7 @@ const Call = () => {
         const callSnap = await getDoc(callDocRef)
         const callData = callSnap.data()
         if (!callData) {
-          console.error("Call data not found")
+          toast.error("Call data not found")
           window.close()
           return
         }
@@ -207,22 +206,26 @@ const Call = () => {
       <div className='mt-4 flex justify-center gap-4'>
         {isCaller ? (
           <div>
-            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
               Hang Up
             </button>
           </div>
         ) : callStatus === "pending" && currentUser?.id === receiverId ? (
           <div className='flex gap-2'>
-            <button onClick={handleAcceptCall} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
+            <button
+              type='button'
+              onClick={handleAcceptCall}
+              className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'
+            >
               Accept
             </button>
-            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
               Reject
             </button>
           </div>
         ) : callStatus === "accepted" ? (
           <>
-            <button onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
+            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
               Hang Up
             </button>
           </>

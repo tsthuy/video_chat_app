@@ -1,7 +1,7 @@
 import { memo } from "react"
 
 import { ChatList } from "~/components/list/chat-list"
-import { cn } from "~/lib/utils"
+import { cn } from "~/libs"
 import { useChatStore } from "~/stores"
 
 const ListUserChat = memo(() => {

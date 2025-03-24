@@ -1,4 +1,3 @@
-"use client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
@@ -12,7 +11,8 @@ import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
-import { auth, db, googleProvider } from "~/lib/firebase"
+import { cn } from "~/libs"
+import { auth, db, googleProvider } from "~/libs"
 import { useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
 
@@ -122,7 +122,7 @@ export const LoginForm = memo(function LoginForm() {
             <img src='/images/google.png' alt='Login with Google' />
             Login with Google
           </Button>
-          <p className='text-right '>
+          <p className={cn("text-right", (isLoading || isGoogleLoading) && "opacity-70 pointer-events-none")}>
             You dont have an account?{" "}
             <Link className='text-blue-700 hover:underline' to={"/signup"}>
               Create an account

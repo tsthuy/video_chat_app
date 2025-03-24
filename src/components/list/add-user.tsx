@@ -1,4 +1,4 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from "firebase/firestore"
+import { arrayUnion, collection, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore"
 import { UserPlus } from "lucide-react"
 import { memo, useEffect, useState } from "react"
 import { toast } from "react-toastify"
@@ -6,9 +6,9 @@ import { toast } from "react-toastify"
 import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { useChatStore } from "~/stores"
-import { User, useUserStore } from "~/stores/use-user.store"
+import { useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
 
 const AddUser = memo(() => {
@@ -23,29 +23,48 @@ const AddUser = memo(() => {
   const [openDialog, setOpenDialog] = useState(false)
 
   useEffect(() => {
-    const fetchUsersAndChats = async () => {
-      try {
-        const usersRef = collection(db, "users")
-        const usersSnapshot = await getDocs(usersRef)
-        const usersList = usersSnapshot.docs
-          .map((doc) => doc.data() as User)
-          .filter((user) => user.id !== currentUser?.id)
-        setAllUsers(usersList)
+    if (!currentUser?.id) return
 
-        if (currentUser?.id) {
-          const userChatsRef = doc(db, "userchats", currentUser.id)
-          const userChatsSnapshot = await getDoc(userChatsRef)
-          if (userChatsSnapshot.exists()) {
-            const userChatsData = userChatsSnapshot.data() as UserChatsData
-            setUserChats(userChatsData.chats || [])
-          }
+    const usersRef = collection(db, "users")
+    const unsubscribeUsers = onSnapshot(
+      usersRef,
+      (snapshot) => {
+        try {
+          const usersList = snapshot.docs.map((doc) => doc.data() as User).filter((user) => user.id !== currentUser.id)
+          setAllUsers(usersList)
+        } catch (error) {
+          toast.error(getErrorMessage(error))
         }
-      } catch (error) {
+      },
+      (error) => {
         toast.error(getErrorMessage(error))
       }
-    }
+    )
 
-    fetchUsersAndChats()
+    const userChatsRef = doc(db, "userchats", currentUser.id)
+    const unsubscribeUserChats = onSnapshot(
+      userChatsRef,
+      (snapshot) => {
+        try {
+          if (snapshot.exists()) {
+            const userChatsData = snapshot.data() as UserChatsData
+            setUserChats(userChatsData.chats || [])
+          } else {
+            setUserChats([])
+          }
+        } catch (error) {
+          toast.error(getErrorMessage(error))
+        }
+      },
+      (error) => {
+        toast.error(getErrorMessage(error))
+      }
+    )
+
+    return () => {
+      unsubscribeUsers()
+      unsubscribeUserChats()
+    }
   }, [currentUser])
 
   const hasConversation = (userId: string) => {
@@ -107,7 +126,7 @@ const AddUser = memo(() => {
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger asChild>
         <Button type='button' variant='outline'>
-          <UserPlus />
+          <UserPlus className='size-6' />
         </Button>
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px] max-w-[380px]'>
@@ -123,7 +142,7 @@ const AddUser = memo(() => {
               <div key={user.id} className='flex items-center justify-between gap-2 p-2 border-b'>
                 <div className='flex items-center'>
                   <figure className='flex items-center'>
-                    <img className='rounded-full w-[40px] h-[40px]' src={user.avatar} alt='avatar' />
+                    <img className='rounded-full w-[40px] h-[40px] object-contain' src={user.avatar} alt='avatar' />
                   </figure>
                   <h3 className='ml-2'>{user.username}</h3>
                 </div>

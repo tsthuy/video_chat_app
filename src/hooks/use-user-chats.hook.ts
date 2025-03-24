@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { doc, getDoc } from "firebase/firestore"
 
 import { QUERY_KEYS } from "~/constants"
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { fetchUserChats } from "~/services/user.service"
 import { useChatStore } from "~/stores"
-import { useUserStore } from "~/stores/use-user.store"
+import { useUserStore } from "~/stores"
 
 export function useUserChats(userId: string) {
   return useQuery({

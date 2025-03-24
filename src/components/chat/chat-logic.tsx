@@ -19,9 +19,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
 import { useMembersChatGroup } from "~/hooks"
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
 import { useChatStore } from "~/stores"
-import { useUserStore } from "~/stores/use-user.store"
+import { useUserStore } from "~/stores"
 import { UserChatsResult } from "~/types/chat-custom"
 import { getErrorMessage } from "~/utils"
 import { upload } from "~/utils"
@@ -66,6 +66,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     if (!chatId) return
 
     setIsLoadingMessages(true)
+    setShouldAutoScroll(true)
     setIsInitialLoad(true)
     const messagesRef = collection(db, "chats", chatId, "messages")
 
@@ -83,7 +84,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       },
       (error) => {
         toast.error(getErrorMessage(error))
-        setError("Không thể tải tin nhắn. Vui lòng thử lại sau.")
+        setError("Some things went wrong, please try again!")
         setIsLoadingMessages(false)
         setIsInitialLoad(false)
       }
@@ -299,6 +300,8 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         ...(fileUrl && { file: fileUrl })
       }
 
+      handleRemoveFile()
+
       const messagesRef = collection(db, "chats", chatId, "messages")
       await addDoc(messagesRef, message)
 
@@ -317,8 +320,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       const userChatsResults = (await Promise.all(userChatsDataPromises)).filter(
         (result): result is UserChatsResult => result !== null
       )
-
-      handleRemoveFile()
 
       userChatsResults.forEach(({ id, ref, data }: UserChatsResult) => {
         const chatIndex = data.chats.findIndex((c) => c.chatId === chatId)

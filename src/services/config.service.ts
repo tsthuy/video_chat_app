@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios"
+import { toast } from "react-toastify"
+
+import { getErrorMessage } from "~/utils"
 
 interface ApiClientOptions {
   baseURL: string
@@ -51,7 +54,7 @@ class ApiClient {
       },
       (error) => {
         if (error.response?.status === 401) {
-          console.error("Unauthorized access - redirecting to login.")
+          toast.error(getErrorMessage(error))
         }
         return customInterceptors?.error ? customInterceptors.error(error) : Promise.reject(error)
       }

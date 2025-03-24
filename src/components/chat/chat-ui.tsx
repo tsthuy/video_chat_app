@@ -1,5 +1,5 @@
 import EmojiPicker from "emoji-picker-react"
-import { ChevronsLeft, Columns2, Mic, Paperclip, SmilePlus, Trash2, Video } from "lucide-react"
+import { ArrowLeft, Columns2, Mic, Paperclip, SmilePlus, Trash2, Video } from "lucide-react"
 import { memo, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
@@ -7,7 +7,7 @@ import ChatContainer from "~/components/chat/chat-logic"
 import { Loader8 } from "~/components/loader/loader8"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Textarea } from "~/components/ui/textarea"
-import { cn } from "~/lib/utils"
+import { cn } from "~/libs"
 import { renderMessages } from "~/utils/render-messages.util"
 
 const ChatUI = ({
@@ -40,8 +40,7 @@ const ChatUI = ({
   toggleProfile,
   handleToggleUserChat,
   textareaWrapperRef,
-  messagesContainerRef,
-  isLoadingMessages
+  messagesContainerRef
 }: ReturnType<typeof ChatContainer>) => {
   const isDisabled = isSending || isRecording || isLoadingMembers
   const [micPopoverOpen, setMicPopoverOpen] = useState(false)
@@ -56,12 +55,12 @@ const ChatUI = ({
             className='cursor-pointer p-0 rounded-lg block md:hidden'
             title='Toggle User Chat'
           >
-            <ChevronsLeft className='size-6 text-black' />
+            <ArrowLeft className='size-6 text-black' />
           </button>
 
           <figure className='flex items-center w-fit'>
             <img
-              className='rounded-full w-[50px] h-[50px] border'
+              className='rounded-full w-[50px] h-[50px] border object-contain'
               src={group ? group.imgUrl || "/group-default.png" : user?.avatar}
               alt='avatar'
             />
@@ -79,7 +78,7 @@ const ChatUI = ({
           >
             <Video className='size-6 text-black' />
           </button>
-          <button onClick={toggleProfile} className='cursor-pointer p-2 rounded-lg'>
+          <button type='button' onClick={toggleProfile} className='cursor-pointer p-2 rounded-lg'>
             <Columns2 className='size-6 text-black' />
           </button>
         </div>
@@ -91,8 +90,6 @@ const ChatUI = ({
         <p className='text-center items-center h-full flex justify-center'>Say hello to start the conversation</p>
       ) : (
         <div ref={messagesContainerRef} className='flex-1 overflow-y-auto p-4'>
-          {isLoadingMessages && <p className='text-center'>Đang tải tin nhắn cũ hơn...</p>}
-
           {isLoadingMembers ? (
             <p className='text-center'>Loading...</p>
           ) : (
@@ -132,7 +129,10 @@ const ChatUI = ({
                     <Trash2 />
                   </button>
                 ) : (
-                  <button className='absolute inset-0 flex items-center justify-center bg-black/50 rounded'>
+                  <button
+                    type='button'
+                    className='absolute inset-0 flex items-center justify-center bg-black/50 rounded'
+                  >
                     <Loader8 />
                   </button>
                 )}
@@ -167,13 +167,12 @@ const ChatUI = ({
 
         <div ref={textareaWrapperRef} className='flex-1 items-center min-w-0'>
           <Textarea
-            rows={1}
             placeholder={!!img.file || !!audioBlob ? "Please address the pre-review file" : "Type a message..."}
             value={text}
             onKeyDown={handleKeyDown}
             onChange={(e) => setText(e.target.value)}
             disabled={isCurrentUserBlocked || isReceiverBlocked || !!img.file || !!audioBlob}
-            className='w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 resize-vertical min-h-[40px] max-h-[80px] sm:max-h-[120px]'
+            className='w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 min-h-[40px] max-h-[80px] sm:max-h-[120px] resize-none'
             style={{ minWidth: "200px", maxWidth: "100%" }}
           />
         </div>

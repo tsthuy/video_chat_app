@@ -12,8 +12,10 @@ import {
 } from "firebase/firestore"
 import { Copy, Ellipsis, VideoOff } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "react-toastify"
 
-import { db } from "~/lib/firebase"
+import { db } from "~/libs"
+import { getErrorMessage } from "~/utils"
 
 const servers: RTCConfiguration = {
   iceServers: [
@@ -188,7 +190,7 @@ function Videos({ mode, callId, setPage }: VideosProps) {
         }
       }
     } catch (error) {
-      console.error("Error setting up sources:", error)
+      toast.error(getErrorMessage(error))
     }
   }
 

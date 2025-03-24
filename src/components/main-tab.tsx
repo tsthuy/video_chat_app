@@ -3,7 +3,7 @@ import { LogOut, MessageSquareText } from "lucide-react"
 import { memo } from "react"
 import { toast } from "react-toastify"
 
-import { auth } from "~/lib/firebase"
+import { auth } from "~/libs"
 import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
@@ -28,14 +28,14 @@ const MainTab = memo(() => {
       <div className=''>
         <figure className='flex justify-center items-center mt-4'>
           <img
-            className='rounded-full w-[50px] h-[50px]'
+            className='rounded-full w-[50px] h-[50px] object-contain border'
             src={currentUser?.avatar || "/images/person.png"}
             alt='avatar'
           />
         </figure>
 
         <div className='flex flex-col justify-center items-center space-y-4 pt-4'>
-          <button className='cursor-pointer p-2 border rounded-lg bg-accent'>
+          <button type='button' className='cursor-pointer p-2 border rounded-lg bg-accent'>
             <MessageSquareText className='size-6 text-black ' />
           </button>
         </div>
