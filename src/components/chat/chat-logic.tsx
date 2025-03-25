@@ -9,6 +9,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
   startAfter,
   Timestamp,
   updateDoc,
@@ -149,8 +150,6 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
   useEffect(() => {
     const container = messagesContainerRef.current
-    console.log("scrollHeight", container?.scrollHeight)
-    console.log("scrollTop", container?.scrollTop)
     if (container && shouldAutoScroll) {
       container.scrollTop = container.scrollHeight
     }
@@ -166,12 +165,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         textarea.setSelectionRange(text.length, text.length)
       }
     }
-
-    setText("")
-    if (messages.length === 0) {
-      setText("🙌")
-    }
-  }, [chatId, messages])
+  }, [chatId])
 
   useEffect(() => {
     if (isRecording) {
@@ -294,7 +288,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       const message: Message = {
         chatId,
         senderId: currentUser.id,
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
         type: audioUrl
           ? "audio"
           : imgUrl && img.file?.type.startsWith("image")
@@ -313,7 +307,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       handleRemoveFile()
 
       const messagesRef = collection(db, "chats", chatId, "messages")
-      await addDoc(messagesRef, message)
+      addDoc(messagesRef, message)
 
       const memberIds = group ? group.memberIds : [currentUser.id, user!.id]
       const batch = writeBatch(db)
@@ -341,7 +335,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
         }
       })
 
-      await batch.commit()
+      batch.commit()
       onSend(message)
     } catch (err) {
       toast.error(getErrorMessage(err))

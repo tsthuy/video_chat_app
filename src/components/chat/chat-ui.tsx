@@ -255,7 +255,6 @@ const ChatUI = ({
                 !text && !img.file && !audioBlob && "hidden",
                 "px-4 py-2 sm:block  bg-blue-500 hover:opacity-80 cursor-pointer text-white rounded-lg disabled:bg-gray-400"
               )}
-              disabled={isDisabled}
             >
               Send
             </button>

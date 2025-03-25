@@ -145,7 +145,7 @@ const AddGroupUsers = memo(() => {
                   isAdding && "cursor-not-allowed pointer-events-none"
                 )}
               >
-                <img src={u.avatar} alt={u.username} className='w-8 h-8 rounded-full' />
+                <img src={u.avatar} alt={u.username} className='w-8 h-8 rounded-full object-contain' />
                 <span>{u.username}</span>
               </div>
             ))}

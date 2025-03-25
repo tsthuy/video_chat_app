@@ -37,6 +37,7 @@
     "cross-env": "^7.0.3",
     "emoji-picker-react": "^4.12.2",
     "firebase": "^11.4.0",
+    "json-stable-stringify-without-jsonify": "^1.0.1",
     "lucide-react": "^0.479.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -2,7 +2,7 @@
 import { formatTime } from "~/utils"
 
 export const renderMessages = (
-  messages: Message[], // Nhận messages thay vì chat
+  messages: Message[],
   currentUser: User | null,
   memberInfo: Record<string, User>,
   user?: User | null
@@ -16,7 +16,7 @@ export const renderMessages = (
     const isFirstInGroup = index === 0 || messages[index - 1]?.senderId !== message.senderId
 
     return (
-      <div key={message.createdAt.toString()} className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2`}>
+      <div key={message.createdAt} className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2`}>
         <div className='flex gap-2'>
           {(!sender || !isFirstInGroup) && !user && <div className='w-8 h-8 flex-shrink-0' />}
           {sender && isFirstInGroup && (
