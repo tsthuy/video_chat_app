@@ -6,7 +6,7 @@ import { toast } from "react-toastify"
 import { auth } from "~/libs"
 import { useChatStore } from "~/stores"
 import { useUserStore } from "~/stores/use-user.store"
-import { getErrorMessage } from "~/utils"
+import { getErrorMessage, getProxiedAvatarUrl } from "~/utils"
 
 const MainTab = memo(() => {
   const currentUser = useUserStore((state) => state.currentUser)
@@ -29,7 +29,7 @@ const MainTab = memo(() => {
         <figure className='flex justify-center items-center mt-4'>
           <img
             className='rounded-full w-[50px] h-[50px] object-contain border'
-            src={currentUser?.avatar || "/images/person.png"}
+            src={getProxiedAvatarUrl(currentUser?.avatar || "") || "/images/person.png"}
             alt='avatar'
           />
         </figure>

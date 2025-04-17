@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { doc, getDoc } from "firebase/firestore"
 
 import { QUERY_KEYS } from "~/constants"
@@ -35,5 +35,14 @@ export function useMembersChatGroup(chatId: string | null) {
     },
     enabled: !!chatId && !!group && !!group.memberIds?.length,
     staleTime: 5 * 60 * 1000
+  })
+}
+
+export function useInfinityTest() {
+  return useInfiniteQuery({
+    queryKey: ["infinityTest"],
+    queryFn: ({ pageParam }) => Promise.resolve({ data: [], pageParam }),
+    getNextPageParam: (lastPage) => lastPage.pageParam + 1,
+    initialPageParam: 1
   })
 }
