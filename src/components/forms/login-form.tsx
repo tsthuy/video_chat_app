@@ -11,8 +11,7 @@ import { Loader8 } from "~/components/loader/loader8"
 import { Button } from "~/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
-import { cn } from "~/libs"
-import { auth, db, googleProvider } from "~/libs"
+import { auth, cn, db, googleProvider } from "~/libs"
 import { useUserStore } from "~/stores/use-user.store"
 import { getErrorMessage } from "~/utils"
 
@@ -75,6 +74,7 @@ export const LoginForm = memo(function LoginForm() {
 
       toast.success("Login Successfully!!!")
     } catch (error) {
+      console.error("Google Sign-In Error:", error)
       toast.error(getErrorMessage(error))
     } finally {
       setIsGoogleLoading(false)

@@ -9,7 +9,17 @@ import { getErrorMessage } from "~/utils"
 const servers: RTCConfiguration = {
   iceServers: [
     { urls: "stun:freestun.net:3478" },
-    { urls: "turn:freestun.net:3478", username: "free", credential: "free" }
+    { urls: "turn:freestun.net:3478", username: "free", credential: "free" },
+    {
+      urls: [
+        "stun:stun.cloudflare.com:3478",
+        "turn:turn.cloudflare.com:3478?transport=udp",
+        "turn:turn.cloudflare.com:3478?transport=tcp",
+        "turns:turn.cloudflare.com:5349?transport=tcp"
+      ],
+      username: "g0d02fc4be4367ee62e1c59b70c82a8262347d3b65bb00b6a6c624f613b7b55d",
+      credential: "2277485491e5debabbdbd4ff2e10f343d43e7559d722f2505a9dd2953649751e"
+    }
   ],
   iceCandidatePoolSize: 5
 }
