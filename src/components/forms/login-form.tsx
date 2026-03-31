@@ -70,6 +70,8 @@ export const LoginForm = memo(function LoginForm() {
           chats: []
         })
       }
+
+      await fetchUserInfo(res.user.uid)
       navigate("/")
 
       toast.success("Login Successfully!!!")
