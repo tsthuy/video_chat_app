@@ -9,3 +9,5 @@ export * from "./render-messages.util"
 export * from "./upload.util"
 
 export * from "./get-img-url-from-gg-auth.util"
+
+export * from "./favicon.util"

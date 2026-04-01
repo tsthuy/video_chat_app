@@ -1,20 +1,25 @@
 import { onAuthStateChanged } from "firebase/auth"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { BrowserRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 
 import { ProtectedRoute } from "~/components/layouts/protected-route"
 import { TestDiv } from "~/components/test/test-div"
+import { useUnreadCount } from "~/hooks"
 import { auth } from "~/libs"
-import { CallPages } from "~/pages"
-import { HomePage } from "~/pages"
-import { LoginPages } from "~/pages"
-import { SheetDemo } from "~/pages"
-import { SignUpPage } from "~/pages"
+import { CallPages, HomePage, LoginPages, SheetDemo, SignUpPage } from "~/pages"
 import { useUserStore } from "~/stores"
+import { resetFavicon, updateDocumentTitle, updateFaviconBadge } from "~/utils"
+
+const ORIGINAL_TITLE = "Video Chat App"
 
 export default function App() {
   const fetchUserInfo = useUserStore((state) => state.fetchUserInfo)
+  const currentUser = useUserStore((state) => state.currentUser)
+
+  const { unreadCount } = useUnreadCount(currentUser?.id)
+
+  const lastUnreadCount = useRef(0)
 
   useEffect(() => {
     const unSub = onAuthStateChanged(auth, (user) => {
@@ -26,6 +31,25 @@ export default function App() {
       unSub()
     }
   }, [fetchUserInfo])
+
+  useEffect(() => {
+    if (unreadCount !== lastUnreadCount.current) {
+      lastUnreadCount.current = unreadCount
+    }
+
+    if (unreadCount > 0) {
+      updateFaviconBadge(unreadCount)
+      updateDocumentTitle(unreadCount, ORIGINAL_TITLE)
+    } else {
+      resetFavicon()
+      document.title = ORIGINAL_TITLE
+    }
+
+    return () => {
+      resetFavicon()
+      document.title = ORIGINAL_TITLE
+    }
+  }, [unreadCount])
 
   return (
     <>
