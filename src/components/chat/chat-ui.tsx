@@ -1,5 +1,5 @@
 import EmojiPicker from "emoji-picker-react"
-import { ArrowLeft, Columns2, Mic, Paperclip, SmilePlus, Trash2, Video } from "lucide-react"
+import { ArrowLeft, Columns2, Mic, Paperclip, Phone, SmilePlus, Trash2, Video } from "lucide-react"
 import { memo, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
@@ -27,6 +27,7 @@ const ChatUI = ({
   handleRemoveFile,
   handleSend,
   handleVideoCall,
+  handleAudioCall,
   startRecording,
   stopRecording,
   currentUser,
@@ -70,6 +71,14 @@ const ChatUI = ({
         </div>
 
         <div className='flex'>
+          <button
+            onClick={handleAudioCall}
+            className='cursor-pointer p-2 rounded-lg disabled:opacity-50'
+            disabled={isDisabled}
+            title='Audio Call'
+          >
+            <Phone className='size-5 text-black' />
+          </button>
           <button
             onClick={handleVideoCall}
             className='cursor-pointer p-2 rounded-lg disabled:opacity-50'

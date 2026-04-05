@@ -1,9 +1,13 @@
 import { addDoc, collection, doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "react-toastify"
 
+import { AudioCallUI } from "~/components/call/audio-call-ui"
+import { VideoCallUI } from "~/components/call/video-call-ui"
+import { CALL_FEATURE_FLAGS } from "~/constants"
 import { db } from "~/libs"
 import { useUserStore } from "~/stores"
+import { useCallStore } from "~/stores/use-call.store"
 import { getErrorMessage } from "~/utils"
 
 const servers: RTCConfiguration = {
@@ -24,38 +28,128 @@ const servers: RTCConfiguration = {
   iceCandidatePoolSize: 5
 }
 
+const AUTO_ACCEPT_RETRY_INTERVAL_MS = 300
+const AUTO_ACCEPT_MAX_RETRIES = 30
+
 const Call = () => {
   const { currentUser } = useUserStore()
-  const [callId] = useState<string | null>(new URLSearchParams(window.location.search).get("callId"))
-  const [chatId] = useState<string | null>(new URLSearchParams(window.location.search).get("chatId"))
-  const [callerId] = useState<string | null>(new URLSearchParams(window.location.search).get("callerId"))
-  const [receiverId] = useState<string | null>(new URLSearchParams(window.location.search).get("receiverId"))
+  const resetCallState = useCallStore((state) => state.resetCallState)
+
+  const searchParams = new URLSearchParams(window.location.search)
+  const [callId] = useState<string | null>(searchParams.get("callId"))
+  const [chatId] = useState<string | null>(searchParams.get("chatId"))
+  const [callerId] = useState<string | null>(searchParams.get("callerId"))
+  const [receiverId] = useState<string | null>(searchParams.get("receiverId"))
+  const [initialCallType] = useState<"video" | "audio">((searchParams.get("callType") as "video" | "audio") || "video")
+  const [isAutoAcceptEnabled] = useState<boolean>(searchParams.get("autoAccept") === "1")
+
+  const [callType, setCallType] = useState<"video" | "audio">(initialCallType)
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
   const [callStatus, setCallStatus] = useState<string>("pending")
+  const [remoteUserInfo, setRemoteUserInfo] = useState<{ name: string; avatar?: string }>({ name: "User" })
 
-  const localVideoRef = useRef<HTMLVideoElement>(null)
-  const remoteVideoRef = useRef<HTMLVideoElement>(null)
   const pc = useRef<RTCPeerConnection | null>(null)
+  const localStreamRef = useRef<MediaStream | null>(null)
+  const remoteStreamRef = useRef<MediaStream | null>(null)
+  const filteredStreamRef = useRef<MediaStream | null>(null)
+  const trackReplaceQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const isAutoAcceptInProgressRef = useRef(false)
 
   const isCaller = currentUser?.id === callerId
+  const isReceiver = currentUser?.id === receiverId
 
   useEffect(() => {
-    if (localStream && localVideoRef.current) {
-      localVideoRef.current.srcObject = localStream
-    }
+    localStreamRef.current = localStream
   }, [localStream])
 
   useEffect(() => {
-    if (remoteStream && remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream
-    }
+    remoteStreamRef.current = remoteStream
   }, [remoteStream])
 
+  const stopStreamTracks = useCallback((stream: MediaStream | null) => {
+    if (!stream) {
+      return
+    }
+
+    stream.getTracks().forEach((track) => {
+      track.stop()
+    })
+  }, [])
+
+  const queueReplaceTrack = useCallback((sender: RTCRtpSender, track: MediaStreamTrack | null) => {
+    trackReplaceQueueRef.current = trackReplaceQueueRef.current
+      .then(async () => {
+        await sender.replaceTrack(track)
+      })
+      .catch((error) => {
+        console.error("🔄 [Call] Failed queued replaceTrack:", error)
+      })
+
+    return trackReplaceQueueRef.current
+  }, [])
+
+  const cleanupMedia = useCallback(() => {
+    stopStreamTracks(localStreamRef.current)
+    stopStreamTracks(remoteStreamRef.current)
+    stopStreamTracks(filteredStreamRef.current)
+
+    localStreamRef.current = null
+    remoteStreamRef.current = null
+    filteredStreamRef.current = null
+
+    if (pc.current) {
+      pc.current.close()
+      pc.current = null
+    }
+
+    resetCallState()
+  }, [resetCallState, stopStreamTracks])
+
+  const hangUp = useCallback(async () => {
+    if (callId) {
+      try {
+        await updateDoc(doc(db, "calls", callId), { status: "ended" })
+      } catch (error) {
+        console.error("Failed to update call status to ended:", error)
+      }
+    }
+
+    cleanupMedia()
+    window.close()
+  }, [callId, cleanupMedia])
+
+  // Fetch remote user info
+  useEffect(() => {
+    const fetchRemoteUser = async () => {
+      const remoteUserId = isCaller ? receiverId : callerId
+      if (!remoteUserId) return
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", remoteUserId))
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          setRemoteUserInfo({
+            name: userData.username || "User",
+            avatar: userData.avatar
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching remote user:", error)
+      }
+    }
+
+    fetchRemoteUser()
+  }, [isCaller, receiverId, callerId])
+
+  // Setup call
   useEffect(() => {
     if (!callId || !chatId || !currentUser || !callerId || !receiverId) {
       return
     }
+
+    let isDisposed = false
+    const unsubscribers: Array<() => void> = []
 
     const setupCall = async () => {
       try {
@@ -69,52 +163,86 @@ const Call = () => {
         }
 
         setCallStatus(callData.status || "pending")
+        const resolvedCallType: "video" | "audio" = callData.callType === "audio" ? "audio" : initialCallType
+        setCallType(resolvedCallType)
 
         const offerCandidates = collection(callDocRef, "offerCandidates")
         const answerCandidates = collection(callDocRef, "answerCandidates")
 
-        const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        setLocalStream(localStream)
-        const remoteStream = new MediaStream()
+        const mediaConstraints: MediaStreamConstraints =
+          resolvedCallType === "audio" ? { video: false, audio: true } : { video: true, audio: true }
 
-        pc.current = new RTCPeerConnection(servers)
-        localStream.getTracks().forEach((track) => {
-          if (pc.current && pc.current.signalingState !== "closed") {
-            pc.current.addTrack(track, localStream)
+        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints)
+
+        const hasAudioTrack = stream.getAudioTracks().length > 0
+        const hasVideoTrack = stream.getVideoTracks().length > 0
+
+        if (!hasAudioTrack || (resolvedCallType === "video" && !hasVideoTrack)) {
+          stopStreamTracks(stream)
+          toast.error("Không thể truy cập thiết bị media cho cuộc gọi")
+          window.close()
+          return
+        }
+
+        if (isDisposed) {
+          stopStreamTracks(stream)
+          return
+        }
+
+        setLocalStream(stream)
+        localStreamRef.current = stream
+
+        const remoteStreamObj = new MediaStream()
+
+        const pcInstance = new RTCPeerConnection(servers)
+        pc.current = pcInstance
+
+        stream.getTracks().forEach((track) => {
+          if (pcInstance.signalingState !== "closed") {
+            pcInstance.addTrack(track, stream)
           }
         })
 
-        pc.current.ontrack = (event) => {
+        pcInstance.ontrack = (event) => {
           event.streams[0].getTracks().forEach((track) => {
-            remoteStream.addTrack(track)
+            remoteStreamObj.addTrack(track)
           })
-          setRemoteStream(remoteStream)
+          remoteStreamRef.current = remoteStreamObj
+          setRemoteStream(remoteStreamObj)
         }
 
         if (isCaller) {
-          pc.current.onicecandidate = (event) => {
+          pcInstance.onicecandidate = (event) => {
             if (event.candidate) {
               addDoc(offerCandidates, event.candidate.toJSON())
             }
           }
 
-          const offerDescription = await pc.current.createOffer()
-          await pc.current.setLocalDescription(offerDescription)
+          const offerDescription = await pcInstance.createOffer()
+          await pcInstance.setLocalDescription(offerDescription)
 
           const offer = { sdp: offerDescription.sdp, type: offerDescription.type }
-          await setDoc(callDocRef, { offer, callerId, receiverId, status: "pending" }, { merge: true })
+          await setDoc(
+            callDocRef,
+            { offer, callerId, receiverId, chatId, status: "pending", callType: resolvedCallType },
+            {
+              merge: true
+            }
+          )
 
-          onSnapshot(callDocRef, (snapshot) => {
+          const unsubscribeCall = onSnapshot(callDocRef, (snapshot) => {
             const data = snapshot.data()
             if (!pc.current?.currentRemoteDescription && data?.answer && data.status === "accepted") {
               const answerDescription = new RTCSessionDescription(data.answer)
               pc.current?.setRemoteDescription(answerDescription)
             }
             setCallStatus(data?.status || "pending")
+            if (data?.callType) setCallType(data.callType)
             if (data?.status === "ended") window.close()
           })
+          unsubscribers.push(unsubscribeCall)
 
-          onSnapshot(answerCandidates, (snapshot) => {
+          const unsubscribeAnswerCandidates = onSnapshot(answerCandidates, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
               if (change.type === "added") {
                 const candidate = new RTCIceCandidate(change.doc.data())
@@ -122,24 +250,27 @@ const Call = () => {
               }
             })
           })
+          unsubscribers.push(unsubscribeAnswerCandidates)
         } else {
-          pc.current.onicecandidate = (event) => {
+          pcInstance.onicecandidate = (event) => {
             if (event.candidate) {
               addDoc(answerCandidates, event.candidate.toJSON())
             }
           }
 
-          onSnapshot(callDocRef, (snapshot) => {
+          const unsubscribeCall = onSnapshot(callDocRef, (snapshot) => {
             const data = snapshot.data()
             if (data?.offer && !pc.current?.remoteDescription && data.status === "pending") {
               const offerDescription = new RTCSessionDescription(data.offer)
               pc.current?.setRemoteDescription(offerDescription)
             }
             setCallStatus(data?.status || "pending")
+            if (data?.callType) setCallType(data.callType)
             if (data?.status === "ended") window.close()
           })
+          unsubscribers.push(unsubscribeCall)
 
-          onSnapshot(offerCandidates, (snapshot) => {
+          const unsubscribeOfferCandidates = onSnapshot(offerCandidates, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
               if (change.type === "added") {
                 const candidate = new RTCIceCandidate(change.doc.data())
@@ -147,11 +278,12 @@ const Call = () => {
               }
             })
           })
+          unsubscribers.push(unsubscribeOfferCandidates)
         }
 
-        pc.current.onconnectionstatechange = () => {
-          if (pc.current?.connectionState === "disconnected") {
-            hangUp()
+        pcInstance.onconnectionstatechange = () => {
+          if (pcInstance.connectionState === "disconnected" || pcInstance.connectionState === "failed") {
+            void hangUp()
           }
         }
       } catch (error) {
@@ -163,85 +295,226 @@ const Call = () => {
     setupCall()
 
     return () => {
-      if (localStream) localStream.getTracks().forEach((track) => track.stop())
-      if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop())
-      if (pc.current) pc.current.close()
+      isDisposed = true
+      unsubscribers.forEach((unsubscribe) => unsubscribe())
+      cleanupMedia()
     }
-  }, [callId, chatId, currentUser, callerId, receiverId])
+  }, [
+    callId,
+    chatId,
+    currentUser,
+    callerId,
+    receiverId,
+    isCaller,
+    initialCallType,
+    cleanupMedia,
+    hangUp,
+    stopStreamTracks
+  ])
 
-  const handleAcceptCall = async () => {
-    if (!pc.current || !callId || isCaller || callStatus !== "pending") return
+  const attemptAcceptCall = useCallback(async (): Promise<"accepted" | "offer-missing" | "skip"> => {
+    if (!pc.current || !callId || isCaller || (callStatus !== "pending" && callStatus !== "connecting")) {
+      return "skip"
+    }
 
     const callDocRef = doc(db, "calls", callId)
     const callData = (await getDoc(callDocRef)).data()
-    if (!callData?.offer) return
+    if (!callData?.offer) {
+      return "offer-missing"
+    }
 
-    const offerDescription = new RTCSessionDescription(callData.offer)
-    await pc.current.setRemoteDescription(offerDescription)
+    if (!pc.current.remoteDescription) {
+      const offerDescription = new RTCSessionDescription(callData.offer)
+      await pc.current.setRemoteDescription(offerDescription)
+    }
 
     const answerDescription = await pc.current.createAnswer()
     await pc.current.setLocalDescription(answerDescription)
 
     const answer = { type: answerDescription.type, sdp: answerDescription.sdp }
     await updateDoc(callDocRef, { answer, status: "accepted" })
-  }
+    return "accepted"
+  }, [callId, callStatus, isCaller])
 
-  const hangUp = async () => {
-    if (callId) {
-      await updateDoc(doc(db, "calls", callId), { status: "ended" })
-      window.close()
+  const handleAcceptCall = useCallback(() => {
+    void attemptAcceptCall().then((result) => {
+      if (result === "offer-missing") {
+        toast.info("Đang thiết lập cuộc gọi, vui lòng chờ...")
+      }
+    })
+  }, [attemptAcceptCall])
+
+  useEffect(() => {
+    if (!isAutoAcceptEnabled || !isReceiver || isCaller || !localStream) {
+      return
     }
-    if (pc.current) pc.current.close()
-    if (localStream) localStream.getTracks().forEach((track) => track.stop())
-    if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop())
+
+    if (callStatus !== "pending" && callStatus !== "connecting") {
+      return
+    }
+
+    if (isAutoAcceptInProgressRef.current) {
+      return
+    }
+
+    let isCancelled = false
+    isAutoAcceptInProgressRef.current = true
+
+    const autoAcceptWithRetry = async () => {
+      for (let attempt = 0; attempt < AUTO_ACCEPT_MAX_RETRIES; attempt += 1) {
+        if (isCancelled) {
+          isAutoAcceptInProgressRef.current = false
+          return
+        }
+
+        const result = await attemptAcceptCall()
+
+        if (result === "accepted" || result === "skip") {
+          isAutoAcceptInProgressRef.current = false
+          return
+        }
+
+        await new Promise((resolve) => {
+          setTimeout(resolve, AUTO_ACCEPT_RETRY_INTERVAL_MS)
+        })
+      }
+
+      isAutoAcceptInProgressRef.current = false
+
+      if (!isCancelled) {
+        toast.error("Không thể bắt máy. Vui lòng thử lại cuộc gọi.")
+      }
+    }
+
+    void autoAcceptWithRetry()
+
+    return () => {
+      isCancelled = true
+      isAutoAcceptInProgressRef.current = false
+    }
+  }, [attemptAcceptCall, callStatus, isAutoAcceptEnabled, isCaller, isReceiver, localStream])
+
+  const switchToVideo = useCallback(async () => {
+    if (!CALL_FEATURE_FLAGS.enableAudioToVideoUpgrade) {
+      return
+    }
+
+    if (!localStreamRef.current || !pc.current || !callId) return
+
+    try {
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true })
+      const videoTrack = videoStream.getVideoTracks()[0]
+      if (!videoTrack) {
+        toast.error("Không tìm thấy video track")
+        return
+      }
+
+      const sender = pc.current.getSenders().find((s) => s.track?.kind === "video")
+      if (sender) {
+        await queueReplaceTrack(sender, videoTrack)
+      } else {
+        pc.current.addTrack(videoTrack, localStreamRef.current)
+      }
+
+      const newLocalStream = new MediaStream()
+      localStreamRef.current.getAudioTracks().forEach((track) => newLocalStream.addTrack(track))
+      newLocalStream.addTrack(videoTrack)
+
+      localStreamRef.current
+        .getVideoTracks()
+        .filter((track) => track.id !== videoTrack.id)
+        .forEach((track) => track.stop())
+
+      localStreamRef.current = newLocalStream
+      setLocalStream(newLocalStream)
+      setCallType("video")
+
+      await updateDoc(doc(db, "calls", callId), { callType: "video" })
+    } catch (error) {
+      toast.error("Không thể bật camera: " + getErrorMessage(error))
+    }
+  }, [callId, queueReplaceTrack])
+
+  const handleFilteredStreamChange = useCallback(
+    async (filteredStream: MediaStream | null) => {
+      if (!pc.current) {
+        return
+      }
+
+      try {
+        const videoSender = pc.current.getSenders().find((sender) => sender.track?.kind === "video")
+
+        if (!videoSender) {
+          return
+        }
+
+        if (filteredStream) {
+          const filteredTrack = filteredStream.getVideoTracks()[0]
+          if (!filteredTrack) {
+            return
+          }
+
+          await queueReplaceTrack(videoSender, filteredTrack)
+
+          if (filteredStreamRef.current && filteredStreamRef.current !== filteredStream) {
+            stopStreamTracks(filteredStreamRef.current)
+          }
+
+          filteredStreamRef.current = filteredStream
+          return
+        }
+
+        const originalTrack = localStreamRef.current?.getVideoTracks()[0] || null
+        await queueReplaceTrack(videoSender, originalTrack)
+
+        if (filteredStreamRef.current) {
+          stopStreamTracks(filteredStreamRef.current)
+          filteredStreamRef.current = null
+        }
+      } catch (error) {
+        console.error("🔄 [Call] Failed to replace video track:", error)
+      }
+    },
+    [queueReplaceTrack, stopStreamTracks]
+  )
+
+  if (!callId || !chatId || !callerId || !receiverId) {
+    return (
+      <div className='flex items-center justify-center h-svh bg-slate-900 text-white'>
+        <p>Cuộc gọi không hợp lệ</p>
+      </div>
+    )
   }
 
-  if (!callId || !chatId || !callerId || !receiverId) return <p>Invalid call</p>
+  // Render appropriate UI based on call type
+  if (callType === "audio") {
+    return (
+      <AudioCallUI
+        localStream={localStream}
+        remoteStream={remoteStream}
+        callerName={remoteUserInfo.name}
+        callerAvatar={remoteUserInfo.avatar}
+        callStatus={callStatus}
+        onHangUp={hangUp}
+        onSwitchToVideo={CALL_FEATURE_FLAGS.enableAudioToVideoUpgrade ? switchToVideo : undefined}
+        onAccept={handleAcceptCall}
+        showAcceptButton={isReceiver && !isAutoAcceptEnabled}
+      />
+    )
+  }
 
   return (
-    <div className='flex flex-col h-svh p-4'>
-      <h2 className='text-xl mb-4 text-center'>Video Call</h2>
-      {callStatus === "pending" && <p className='text-center'>Connecting...</p>}
-
-      <div className='flex flex-col sm:flex-row gap-4'>
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className='sm:w-1/2 h-[30%] sm:h-full w-full rounded-lg border -scale-x-100'
-        />
-        <video ref={remoteVideoRef} autoPlay playsInline className='sm:w-1/2 w-full rounded-lg border justify-end' />
-      </div>
-      <div className='mt-4 flex justify-center gap-4'>
-        {isCaller ? (
-          <div>
-            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
-              Hang Up
-            </button>
-          </div>
-        ) : callStatus === "pending" && currentUser?.id === receiverId ? (
-          <div className='flex gap-2'>
-            <button
-              type='button'
-              onClick={handleAcceptCall}
-              className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'
-            >
-              Accept
-            </button>
-            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
-              Reject
-            </button>
-          </div>
-        ) : callStatus === "accepted" ? (
-          <>
-            <button type='button' onClick={hangUp} className='px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600'>
-              Hang Up
-            </button>
-          </>
-        ) : null}
-      </div>
-    </div>
+    <VideoCallUI
+      localStream={localStream}
+      remoteStream={remoteStream}
+      callStatus={callStatus}
+      callerName={remoteUserInfo.name}
+      callerAvatar={remoteUserInfo.avatar}
+      onHangUp={hangUp}
+      onAccept={handleAcceptCall}
+      showAcceptButton={isReceiver && !isAutoAcceptEnabled}
+      onFilteredStreamChange={handleFilteredStreamChange}
+    />
   )
 }
 

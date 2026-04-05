@@ -13,7 +13,6 @@ import {
   startAfter,
   Timestamp,
   updateDoc,
-  where,
   writeBatch
 } from "firebase/firestore"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -21,11 +20,9 @@ import { toast } from "react-toastify"
 
 import { useMembersChatGroup } from "~/hooks"
 import { db } from "~/libs"
-import { useChatStore } from "~/stores"
-import { useUserStore } from "~/stores"
+import { useChatStore, useUserStore } from "~/stores"
 import { UserChatsResult } from "~/types/chat-custom"
-import { getErrorMessage } from "~/utils"
-import { upload } from "~/utils"
+import { getErrorMessage, upload } from "~/utils"
 
 const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => void; onVideoCall: () => void }) => {
   const [messages, setMessages] = useState<Message[]>([])
@@ -54,7 +51,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const toastIdRef = useRef<string | number | null>(null)
+  const callWindowWatcherRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isDisabled = isSending || isRecording || isLoadingMembers
 
@@ -180,44 +177,44 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
   }, [isRecording])
 
   useEffect(() => {
-    if (!currentUser || !user || group) return
-
-    const q = query(collection(db, "calls"), where("receiverId", "==", currentUser.id))
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const callData = change.doc.data()
-          if (callData.receiverId === currentUser.id && callData.status === "pending") {
-            toastIdRef.current = toast.info(`${user.username} is calling for you!`, {
-              onClick: () => {
-                window.open(
-                  `/call?callId=${change.doc.id}&chatId=${chatId}&callerId=${callData.callerId}&receiverId=${callData.receiverId}`,
-                  "VideoCall",
-                  "width=800,height=600"
-                )
-              },
-              autoClose: false
-            })
-          }
-        } else if (change.type === "modified") {
-          const callData = change.doc.data()
-
-          if (callData.status === "ended" && toastIdRef.current) {
-            toast.dismiss(toastIdRef.current)
-            toastIdRef.current = null
-          }
-        }
-      })
-    })
-
-    return () => unsubscribe()
-  }, [currentUser, user, group, chatId])
+    return () => {
+      if (callWindowWatcherRef.current) {
+        clearInterval(callWindowWatcherRef.current)
+        callWindowWatcherRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (img.file || audioBlob) {
       setShouldAutoScroll(true)
     }
   }, [img.file, audioBlob])
+
+  const clearCallWindowWatcher = useCallback(() => {
+    if (callWindowWatcherRef.current) {
+      clearInterval(callWindowWatcherRef.current)
+      callWindowWatcherRef.current = null
+    }
+  }, [])
+
+  const startCallWindowWatcher = useCallback(
+    (callWindow: Window, callDocId: string) => {
+      clearCallWindowWatcher()
+
+      callWindowWatcherRef.current = setInterval(() => {
+        if (!callWindow.closed) {
+          return
+        }
+
+        clearCallWindowWatcher()
+        void updateDoc(doc(db, "calls", callDocId), { status: "ended" }).catch((error) => {
+          console.error("Failed to end call after window close:", error)
+        })
+      }, 500)
+    },
+    [clearCallWindowWatcher]
+  )
 
   const startRecording = useCallback(async () => {
     try {
@@ -354,33 +351,67 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
       const callRef = await addDoc(collection(db, "calls"), {
         callerId: currentUser.id,
         receiverId: user.id,
+        chatId,
         status: "pending",
+        callType: "video",
         createdAt: Timestamp.now()
       })
 
       const callWindow = window.open(
-        `/call?callId=${callRef.id}&chatId=${chatId}&callerId=${currentUser.id}&receiverId=${user.id}`,
-        "VideoCall",
+        `/call?callId=${callRef.id}&chatId=${chatId}&callerId=${currentUser.id}&receiverId=${user.id}&callType=video`,
+        "video-call",
         "width=800,height=600"
       )
 
       if (!callWindow) {
+        await updateDoc(doc(db, "calls", callRef.id), { status: "ended" })
         toast.error("Please allow popup to start the call")
         return
       }
 
-      const checkWindowClosed = setInterval(() => {
-        if (callWindow.closed) {
-          clearInterval(checkWindowClosed)
-          updateDoc(doc(db, "calls", callRef.id), { status: "ended" })
-        }
-      }, 500)
+      startCallWindowWatcher(callWindow, callRef.id)
 
       onVideoCall()
     } catch (err) {
       toast.error(getErrorMessage(err))
     }
-  }, [chatId, currentUser, user, group, onVideoCall])
+  }, [chatId, currentUser, user, group, onVideoCall, startCallWindowWatcher])
+
+  const handleAudioCall = useCallback(async () => {
+    if (!chatId || !currentUser || !user || group) {
+      toast.error("Only support for single chat!")
+      return
+    }
+
+    try {
+      const callRef = await addDoc(collection(db, "calls"), {
+        callerId: currentUser.id,
+        receiverId: user.id,
+        chatId,
+        status: "pending",
+        callType: "audio",
+        createdAt: Timestamp.now()
+      })
+
+      const callWindow = window.open(
+        `/call?callId=${callRef.id}&chatId=${chatId}&callerId=${currentUser.id}&receiverId=${user.id}&callType=audio`,
+        "video-call",
+        "width=400,height=500"
+      )
+
+      if (!callWindow) {
+        await updateDoc(doc(db, "calls", callRef.id), { status: "ended" })
+        toast.error("Please allow popup to start the call")
+        return
+      }
+
+      startCallWindowWatcher(callWindow, callRef.id)
+
+      onVideoCall()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
+  }, [chatId, currentUser, user, group, onVideoCall, startCallWindowWatcher])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -412,6 +443,7 @@ const ChatContainer = ({ onSend, onVideoCall }: { onSend: (message: Message) => 
     handleRemoveFile,
     handleSend,
     handleVideoCall,
+    handleAudioCall,
     startRecording,
     stopRecording,
     currentUser,
