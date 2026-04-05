@@ -209,7 +209,7 @@ const Call = () => {
           autoPlay
           playsInline
           muted
-          className='sm:w-1/2 h-[30%] sm:h-full w-full rounded-lg border -scale-x-100'
+          className='sm:w-1/2  sm:h-full w-full rounded-lg border -scale-x-100'
         />
         <video ref={remoteVideoRef} autoPlay playsInline className='sm:w-1/2 w-full rounded-lg border justify-end' />
       </div>
