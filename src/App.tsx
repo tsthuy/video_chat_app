@@ -3,9 +3,10 @@ import { useEffect, useRef } from "react"
 import { BrowserRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 
+import { IncomingCallOverlay } from "~/components/call/incoming-call-overlay"
 import { ProtectedRoute } from "~/components/layouts/protected-route"
 import { TestDiv } from "~/components/test/test-div"
-import { useUnreadCount } from "~/hooks"
+import { useGlobalCallListener, useUnreadCount } from "~/hooks"
 import { auth } from "~/libs"
 import { CallPages, HomePage, LoginPages, SheetDemo, SignUpPage } from "~/pages"
 import { useUserStore } from "~/stores"
@@ -18,12 +19,12 @@ export default function App() {
   const currentUser = useUserStore((state) => state.currentUser)
 
   const { unreadCount } = useUnreadCount(currentUser?.id)
+  const { incomingCall, acceptCall, declineCall } = useGlobalCallListener(currentUser?.id)
 
   const lastUnreadCount = useRef(0)
 
   useEffect(() => {
     const unSub = onAuthStateChanged(auth, (user) => {
-      console.log("user", user)
       fetchUserInfo(user?.uid)
     })
 
@@ -70,6 +71,18 @@ export default function App() {
           <Route path='/shadcn' element={<SheetDemo />} />
         </Routes>
       </BrowserRouter>
+
+      {/* Global Incoming Call Overlay */}
+      {incomingCall && (
+        <IncomingCallOverlay
+          callerName={incomingCall.callerName}
+          callerAvatar={incomingCall.callerAvatar}
+          callType={incomingCall.callType}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+        />
+      )}
+
       <ToastContainer autoClose={3000} position='top-center' />
     </>
   )
